@@ -30,7 +30,7 @@ module bad_block_manage(
 	output bad_block_renew_datain,			
 	output reg en_bad_block_renew_transfer					//向MCU发送更新后的坏块表标志信号
     );
-		 
+	 	 
 	reg [11:0] bad_block_addr;
 	reg [1:0] i;
 

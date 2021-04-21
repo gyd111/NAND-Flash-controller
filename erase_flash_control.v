@@ -24,7 +24,7 @@ module erase_flash_control(
 	output end_erase,
 	output reg en_erase_page,
 	
-	input [1:0]erase_addr_row_error,
+	input [1:0]erase_addr_row_error, // 2 为坏块，1为好块， 0为未检索
 	
 	input [23:0] erase_addr_start,erase_addr_finish,
 	output reg [23:0]erase_addr_row

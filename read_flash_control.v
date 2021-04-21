@@ -59,7 +59,7 @@ module read_flash_control(
  	 reg read_en_ram3,read_we_ram3;
  
 	 assign read_en_ram = (read_state == 4) ? read_en_ram1 : read_en_ram2 | read_en_ram3;						//因为在状态4切换到状态5的时候
-	 assign read_we_ram = (read_state == 4) ? read_we_ram1 : read_we_ram2 | read_we_ram3;						//由于read_cnt的第一位会变为0
+	 assign read_we_ram = (read_state == 4) ? read_we_ram1 : read_we_ram2 | read_we_ram3;						//由于 read_cnt 的第一位会变为0
 	 assign read_ram_addr = (read_state == 4) ? read_ram_addr1 : read_ram_addr2 | read_ram_addr3;			//所以在切换那个时钟周期会有一次不需要的写入
 	 assign read_ram_datain = (read_state == 4) ? read_ram_datain1 : read_ram_datain2 | read_ram_datain3;	//所以采用了这样的写法，而不是直接三个数值相或
  

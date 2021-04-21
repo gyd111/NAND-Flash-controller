@@ -278,7 +278,7 @@
 					ECCcompare_state <= 9;							//对获得的两组ECC码进行异或
 					ECC_compare_reg <= (read_ECC_data1 & ~read_ECC_data2)|(~read_ECC_data1 & read_ECC_data2);
 				end
-				9:
+				9: 
 				begin														//把有用的部分提出
 					ECCcompare_state <= 10;
 					ECC_compare1[9] <= ECC_compare_reg[21];

@@ -25,7 +25,6 @@ module NANDflash_control(
 	input start_trs,						//命令到来脉冲信号
 	
 	input en_read_FPGA,                    //Data_download模块输出的读使能信号
-	input change_bypass,
 	input [23:0] read_addr_FPGA,          //Data_download模块输出的读地址
 	input [7:0]flash_ram_dataout,
 	output [7:0]flash_ram_datain,
@@ -53,7 +52,7 @@ module NANDflash_control(
 	output nandflash_busy_Noresponse,
 	output end_read ,
 	
-	output [4:0]state
+	output wire [4:0]state
 	
     );
 //*************   command_receive模块    *************//
@@ -95,7 +94,7 @@ module NANDflash_control(
 	wire [23:0]erase_addr_row;
 
 //************* basic_NANDflash_control模块  *************//
-	wire [4:0] state;
+	
 
 	wire [13:0]write_data_cnt;
 	wire [1:0]write_addr_row_error;						//写操作坏块检索，用于输入了块地址后检查该地址是否为坏块,0为未检索，1为好块，2为块坏
@@ -120,7 +119,7 @@ module NANDflash_control(
     assign en_read = en_read_1;
 //	assign read_addr_row_reg = change_bypass ? read_addr_FPGA:read_addr_row_reg_1;   //修改
     assign read_addr_row_reg = read_addr_row_reg_1;
-	assign read_flag = en_read;
+	assign read_flag = en_read_1;
 	
    //***************测试程序段**************//
 	always@(negedge clk or posedge rst)

@@ -19,7 +19,7 @@
 //
 //////////////////////////////////////////////////////////////////////////////////
 module basic_NANDflash_control(
-	input clk,rst,clk12M,clk24M,
+	input clk,rst,clk12M,clk24M,								// clk is 24M
 	output [4:0] state,											//状态，用于通知外部模块输入数据的时间
 	input en_write_page,en_read,en_erase_page,			//使能信号
 	output end_write_page,end_read,end_erase_page,		//结束信号

@@ -29,6 +29,7 @@ module Change_ram(
     );
 	
 	reg a1_ram_adj,a2_ram_adj;//用于检测ram_adj的上升和下降沿
+	wire pos_change_ram;
 	
 	reg change_ram_r1; //用来检测沿
 	reg change_ram_r2;
@@ -50,7 +51,10 @@ module Change_ram(
 	
 	always@(posedge clk or posedge rst)  //切换ram
 	begin
-		if(rst) begin ram_adj <= 0; hold_change <= 0; end
+		if(rst) begin 
+		  ram_adj <= 0; 
+		  hold_change <= 0;
+		end
 		else 
 			begin
 				if(ram_busy)

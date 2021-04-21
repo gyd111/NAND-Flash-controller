@@ -34,7 +34,7 @@ module state_control(
 	input [1:0]write_addr_row_error,										//写操作坏块检索，用于输入了块地址后检查该地址是否为坏块,0为未检索，1为好块，2为块坏
 	input [1:0]read_addr_row_error,										//读操作坏块检索，用于输入了块地址后检查该地址是否为坏块,0为未检索，1为好块，2为块坏
 	input end_bad_block_renew,												//坏块更新完成标志信号
-	
+
    output reg nandflash_busy_Noresponse,                       //nandflash的busy信号无响应标志
 	output ce,
 	output reg cle1,ale1,we1,re1

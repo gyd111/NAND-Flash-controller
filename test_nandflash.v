@@ -3,12 +3,12 @@
 // Company: 
 // Engineer: 
 // 
-// Create Date:    17:17:09 09/09/2019
+// Create Date:    2021.4.20
 // Design Name: 
-// Module Name:    LDI800²É¼¯´æ´¢°å¹Ì¼ş 
+// Module Name:    NAND Flash Controller
 // Project Name: 
 // Target Devices: 
-// Tool versions:  19.09
+// Tool versions:  
 // Description: 
 //
 // Dependencies: 
@@ -16,7 +16,6 @@
 // Revision: 
 // Revision 0.01 - File Created
 // Additional Comments: 
-//
 //////////////////////////////////////////////////////////////////////////////////
 module test_nandflash(
 	 
@@ -28,73 +27,24 @@ module test_nandflash(
 	input [7:0]MCU_datain,
 	output [7:0] MCU_dataout,
 	
-	input ready_busy,
-	output ce,cle,ale,we,re,
+	input ready_busy,                  // ¿ÕÏĞºÍÃ¦ĞÅºÅ
+	output ce,cle,ale,we,re,          // NADN Flash»ù±¾¿ØÖÆĞÅºÅ
 	
-	inout [7:0] flash_IO,
+	inout [7:0] flash_IO,              // NAND FlashµÄË«ÏòÊı¾İIO
 	
 	input vibstart,acc_dir,
 	output clk_acc,
-	
-
-	output [2:0] FPGA_Crash,              //·¢ËÍ¸ømcuµÄFPGA³ÌĞòËÀ»úµÄĞÅºÅ
-/********************************************************************/
-/*			             		Ö±Í¨µÄÊäÈëÊä³ö                             */
-/********************************************************************/
-	input 	A1_485_tx,           		//½ÓÊÕµ¥Æ¬»úµÄtxd 5.6,A1´ú±íµ¥Æ¬»úµÄµÚ1Ì×485
-	output	A1_485_rx,						//Ïòµ¥Æ¬»úÊä³örxd 5.7
-	input 	A1_485_re,						//´Óµ¥Æ¬»ú¶ÁÈ¡485¿ØÖÆre 5.4
-	input		A1_485_de,						//´Óµ¥Æ¬»ú¶ÁÈ¡485¿ØÖÆde 5.5
-	
-	output	_485A_txd,						
-	input		_485A_rxd,						
-	output	_485A_re,						
-	output	_485A_de,					
-	
-	input 	A2_485_tx,           		//½ÓÊÕµ¥Æ¬»úµÄtxd 9.4,A2´ú±íµ¥Æ¬»úµÄµÚ2Ì×485
-	output	A2_485_rx,						//Ïòµ¥Æ¬»úÊä³örxd 9.5
-	input 	A2_485_re,						//´Óµ¥Æ¬»ú¶ÁÈ¡485¿ØÖÆre 9.6
-	input		A2_485_de,						//´Óµ¥Æ¬»ú¶ÁÈ¡485¿ØÖÆde 9.7
-	
-	output	_485B_txd,						
-	input		_485B_rxd,						
-	output	_485B_re,						
-	output	_485B_de,						
-
-	input 	A3_485_tx,           		//½ÓÊÕµ¥Æ¬»úµÄtxd 10.4,A3´ú±íµ¥Æ¬»úµÄµÚ3Ì×485
-	output	A3_485_rx,						//Ïòµ¥Æ¬»úÊä³örxd 10.5
-	input 	A3_485_re,						//´Óµ¥Æ¬»ú¶ÁÈ¡485¿ØÖÆre 10.6
-	input		A3_485_de,						//´Óµ¥Æ¬»ú¶ÁÈ¡485¿ØÖÆde 10.7
-	
-	output	_485C_txd,						
-	input		_485C_rxd,						
-	output	_485C_re,						
-	output	_485C_de,
 	
 input start_w,
 input start_r,
 input start_e,
 output [4:0]state,
-input c_r,
+input c_r,                          // change ram
 output ram_adj,
 output inout_flag
 	
     );
 	
-//*************       ClockÄ£¿é        *************//
-	 wire clk,rst,clk6M,clk12M,clk1M,clk1_5M,clk_96M;
-
-//*************     AD_ControlÄ£¿é      *************//
-    wire cs_delay1,cs_delay2;         //adÊäÈëram¿ØÖÆÄ£¿éµÄĞÅºÅ£¬¿ØÖÆramµÄ¶ÁĞ´
-    wire [12:0]ad_address1,ad_address2; //¶ÔADÊäÈëµÄÊı¾İ½øĞĞ´¦Àí£¬¼ÓÉÏÉÈÇøĞÅÏ¢ºÍ³¤¶ÌÔ´ĞÅÏ¢£¬±ä³É13Î»µÄµØÖ·
-  
-
-//*************    Selection_AD Ä£¿é     *************//
-    wire cs_delay;           
-    wire ad_adj;              //¶¨ÒåµÄÓÃÓÚµ÷½ÚÑ¡Ôñ³¤¶ÌÔ´µÄ¼Ä´æÆ÷
-    wire [12:0] address_in;
-  
-
 //**************    ram_controlÄ£¿é     **************//
     wire [7:0] ram1_control_data_out;
 	 wire [7:0] ram2_control_data_out;
@@ -104,14 +54,7 @@ output inout_flag
 	 wire we_rw,en_rw;
 	 wire [13:0]address_out;           //¶Ô13Î»µØÖ·½øĞĞ´¦Àí£¬ÔÚ×îºóÒ»Î»¼ÓÉÏ¸ßµÍÎ»£¬Ê¹µÃÁ½¸ö¸ßµÍµØÖ·ÀïµÄÊı¾İ¿ÉÒÔ±íÊ¾Ò»µÀÄÜÆ×
 
-//**************     Change_ram Ä£¿é     **************//
-    wire ram_adj;       //µ±Ç°²Ù×÷ramµÄ±êÖ¾ĞÅºÅ
-    wire ram_change;    //ramÇĞ»»µÄ±êÖ¾ĞÅºÅ£¬ÇĞ»»µÄÊ±ºòÎª1£¨Ò»¸öÊ±ÖÓÖÜÆÚ£©£¬ÆäËûÊ±ºòÎª0
-    wire change_ram;
-//*************   VibrationModule Ä£¿é   *************//
-	wire en_vibTransfer,end_vibTransfer;
-	wire [15:0]acc_data;
-	 
+
 //*************     Command_Receiver     *************//
 	wire en_clr;			//Çå³ıRAMÊ¹ÄÜ
 	wire change_ram2;		//ÇĞ»»ramĞÅºÅ
@@ -120,31 +63,7 @@ output inout_flag
 	wire en_demand_write_addr,end_demand_write_addr;
 	wire uart_cmd_incomplete;
 
-//*************        Clear_ram         *************//
-	wire end_clr;			//Çå³ıRAM½áÊøÂö³å
-	wire en_ram_clr;
-	wire we_ram_clr;
-	wire [7:0] ram_data_clr;
-	wire [13:0] address_clr;
-//**************       Sector Ä£¿é       **************//
-    wire [3:0] sct_address;              //ÉÈÇøĞÅÏ¢
- 	 wire [31:0] sct_period;              //ÖÜÆÚ¼ÆÊı
- 	 wire [31:0] sct1_time;               //Ã¿¸öÉÈÇøµÄÊ±¼äµ¥¶À¼ÆÊı
-	 wire [31:0] sct2_time;
-	 wire [31:0] sct3_time;
-	 wire [31:0] sct4_time;
-	 wire [31:0] sct5_time;
-	 wire [31:0] sct6_time;
-	 wire [31:0] sct7_time;
-	 wire [31:0] sct8_time;
-	 wire [31:0] sct9_time;
-	 wire [31:0] sct10_time;
-	 wire [31:0] sct11_time;
-	 wire [31:0] sct12_time;
-	 wire [31:0] sct13_time;
-	 wire [31:0] sct14_time;
-	 wire [31:0] sct15_time;
-	 wire [31:0] sct16_time;
+
 
 //**************        ram Ä£¿é        **************//
 	wire en1_a,en1_b,en2_a,en2_b,we1_a,we1_b,we2_a,we2_b;
@@ -231,116 +150,6 @@ output inout_flag
 //    .probe5(ready_busy)
 //);
 
-//*************************************************//
-//              FPAG¿ØÖÆÈí¼şUARTÏÂÔØÊı¾İ              //
-//*************************************************//
-Data_download Data_download(
-     .clk(clk),
-     .clk12M(clk12M),
-	  .clk_96M(clk_96M),
-	  .rst(rst),
-	  .end_read(end_read),
-	  .change_bypass(change_bypass),
-	  .return_bypass(return_bypass),
-	  .data_ram(data_ram_FPGA),
-	  .f_rx(f_rx),
-	  .f_tx(f_tx),
-	  .f_re(f_re),
-	  .f_de(f_de),
-	  .en(en_FPGA),
-	  .we(we_FPGA),
-	  .addr_ram(address_FPGA),
-	  .en_read(en_read),
-	  .read_addr(read_addr_FPGA),
-     .change_ram(change_ram1),
-	  .baud_CMD(baud_CMD),
-     .en_baud_transfer(en_baud_transfer),
-     .end_baud_transfer(end_baud_transfer)	  
-);
-
-//****************************************************//
-//					Ö±Í¨Ä£¿é											//
-//****************************************************//	
-	 Bypass Bypass (		//Ö±Í¨Ä£¿é
-    .A1_485_tx(A1_485_tx), 
-    .A1_485_rx(A1_485_rx), 
-    .A1_485_re(A1_485_re), 
-    .A1_485_de(A1_485_de), 
-    ._485A_txd(_485A_txd), 
-    ._485A_rxd(_485A_rxd), 
-    ._485A_re(_485A_re), 
-    ._485A_de(_485A_de), 
-    .A2_485_tx(A2_485_tx), 
-    .A2_485_rx(A2_485_rx), 
-    .A2_485_re(A2_485_re), 
-    .A2_485_de(A2_485_de), 
-    ._485B_txd(_485B_txd), 
-    ._485B_rxd(_485B_rxd), 
-    ._485B_re(_485B_re), 
-    ._485B_de(_485B_de), 
-    .A3_485_tx(A3_485_tx), 
-    .A3_485_rx(A3_485_rx), 
-    .A3_485_re(A3_485_re), 
-    .A3_485_de(A3_485_de), 
-    ._485C_txd(_485C_txd), 
-    ._485C_rxd(_485C_rxd), 
-    ._485C_re(_485C_re), 
-    ._485C_de(_485C_de),
-	 .change_bypass(change_bypass),
-	 .f_tx(f_tx),
-	 .f_rx(f_rx),
-	 .f_re(f_re),
-	 .f_de(f_de)
-    );
-
-
-
-
-	 Selection_AD Selection_AD (
-    .clk(clk), 
-    .rst(rst), 
-    .cs_delay1(cs_delay1), 
-    .cs_delay2(cs_delay2), 
-    .ad_address1(ad_address1), 
-    .ad_address2(ad_address2), 
-    .ram_busy(ram_busy), 
-	 .cs1(cs1),
-	 .cs2(cs2),
-    .cs_delay(cs_delay), 
-	 .ad_adj(ad_adj),
-    .ad_address(address_in)   
-    );
-
-
-    Ram_Control Ram_Control (
-    .clk(clk), 
-    .rst(rst), 
-    .cs_delay(cs_delay), 
-	 .ram_adj(ram_adj),
-	 .ram_busy(ram_busy),
-    .data1_in(ram1_control_data_in), 
-    .data1_out(ram1_control_data_out), 
-	 .data2_in(ram2_control_data_in),
-	 .data2_out(ram2_control_data_out),
-    .address_in(address_in), 
-	 .address_out(address_out), 
-    .en(en_rw), 
-    .we(we_rw) 
-    );
-
-
-//****************************************************//
-//         ÇĞ»»ramÄ£¿é											//
-//****************************************************//
-	 Change_ram Change_ram(
-	 .clk(clk),
-	 .rst(rst),
-	 .change_ram(change_ram),
-	 .ram_busy(ram_busy),
-	 .ram_change(ram_change),
-	 .ram_adj(ram_adj)
-	 );
-assign change_ram = change_bypass ? change_ram1:change_ram2; //Ñ¡Ôñchange_ramĞÅºÅÀ´Ô´
 	 
 //****************************************************//
 //              MCUÖ¸Áî½ÓÊÕÄ£¿é									//
@@ -348,66 +157,13 @@ assign change_ram = change_bypass ? change_ram1:change_ram2; //Ñ¡Ôñchange_ramĞÅº
 	Command_Receiver Command_Receiver (
     .clk(clk), 
     .rst(rst), 
-.start_w( start_w),
-.start_r( start_r),
-.c_r(c_r),
-.start_e(start_e),
-    .end_clr(end_clr), 
-    .end_demand_write_addr(end_demand_write_addr), 
-    .en_demand_write_addr(en_demand_write_addr),  
-    .change_ram(change_ram2), 
-    .en_clr(en_clr), 
+    .start_w( start_w),
+    .start_r( start_r),
+    .start_e(start_e), 
     .cmd(cmd), 
-    .start_cmd(start_cmd),
-	 .ram_change(ram_change),
-	 .uart_cmd_incomplete(uart_cmd_incomplete),
-	 .return_bypass(return_bypass),
-	 .change_bypass(change_bypass)
+    .start_cmd(start_cmd)
     );
-	 
-//****************************************************//
-//              MCUÖ¸Áî·¢ËÍÄ£¿é									//
-//****************************************************//
-	Command_Transfer Command_Transfer (
-    .clk(clk), 
-    .rst(rst), 
-    .clk1M(clk1M), 
-    .RXD_MCU(  ), 
-    .en_bad_block_renew_transfer(en_bad_block_renew_transfer), 
-    .bad_block_renew_addr(bad_block_renew_addr), 
-    .en_vibTransfer(en_vibTransfer), 
-    .acc_data(acc_data),
-	 .baud_CMD(baud_CMD),
-	 .en_baud_transfer(en_baud_transfer),
-    .end_baud_transfer(end_baud_transfer),	 
-    .end_vibTransfer(end_vibTransfer), 
-    .en_writeAddr_Transfer(en_writeAddr_Transfer), 
-    .end_writeAddr_Transfer(end_writeAddr_Transfer), 
-    .write_addr_row(write_addr_row), 
-    .en_demand_write_addr(en_demand_write_addr), 
-    .end_demand_write_addr(end_demand_write_addr), 
-    .end_init_flash_addr(end_init_flash_addr),
-	 .end_erase(end_erase)
-    );
-
-	 
-//****************************************************//
-//               Çå³ıRAMÄ£¿é									//
-//****************************************************//
-	Clear_ram Clear_ram (
-		.en_clr(en_clr),
-		.clk(clk),
-		.rst(rst),
-		.ram_change(ram_change),
-		.en_ram_clr(en_ram_clr),
-		.we_ram_clr(we_ram_clr),
-		.ram_data_clr(ram_data_clr),
-		.address_clr(address_clr),
-		.end_clr(end_clr)
-	);
-
-
-
+	 	 
 //****************************************************//
 //               flash¿ØÖÆÄ£¿é									//
 //****************************************************//
@@ -443,85 +199,20 @@ assign change_ram = change_bypass ? change_ram1:change_ram2; //Ñ¡Ôñchange_ramĞÅº
     .end_erase(end_erase),
 	 .nandflash_busy_Noresponse(nandflash_busy_Noresponse),
 	 .flash_cmd_incomplete(flash_cmd_incomplete),
-	 .change_bypass(change_bypass),
 	 .end_read(end_read),
 	 .en_read_FPGA(en_read),
 	 .read_addr_FPGA(read_addr_FPGA),
 	 .state( state)
     );
 
-//****************************************************//
-//                   FPGAËÀ»úÊä³ö  		       				//
-//****************************************************//
-System_Crash System_Crash(
-
-   .clk(clk),
-	.rst(rst),
-	.uart_cmd_incomplete(uart_cmd_incomplete),
-	.flash_cmd_incomplete(flash_cmd_incomplete),
-	.nandflash_busy_Noresponse(nandflash_busy_Noresponse),
-	.FPGA_Crash(FPGA_Crash)
-);
 
 //*****************************************************//
 //                  RAMµÄ¿ØÖÆĞÅºÅÑ¡Ôñ                   //
 //****************************************************//
-assign en_RAM = change_bypass ? en_FPGA:en_MCU;
-assign we_RAM = change_bypass ? we_FPGA:we_MCU;
-assign address_RAM = change_bypass ? address_FPGA:address_MCU;
-//****************************************************//
-//                   ÅĞ¶Ï¸³Öµ  		       				//
-//****************************************************//
-/*Êı¾İramµÄA¶Ë¿ÚÌá¹©¸øflashºÍÇå³ıramÊ¹ÓÃ*/
-	 assign en1_a = ram_adj ? (read_flag ? en_flash_dataram : 0) : (en_clr ? en_ram_clr : (read_flag ? 0 : en_flash_dataram));
-	 assign we1_a = ram_adj ? (read_flag ? we_flash_dataram : 0) : (en_clr ? we_ram_clr : (read_flag ? 0 : we_flash_dataram));
-	 
-	 assign en2_a = ~ram_adj ? (read_flag ? en_flash_dataram : 0) : (en_clr ? en_ram_clr : (read_flag ? 0 : en_flash_dataram));
-	 assign we2_a = ~ram_adj ? (read_flag ? we_flash_dataram : 0) : (en_clr ? we_ram_clr : (read_flag ? 0 : we_flash_dataram));
-	 
-    assign data_in1_a = ram_adj? (read_flag ? flash_dataram_datain : 0) : (en_clr ? ram_data_clr : (read_flag ? 0 : flash_dataram_datain));  	//ÅĞ¶ÏĞ´ÈëµÄÊÇAD²É¼¯µÄÊı¾İ£¬»¹ÊÇĞèÒªĞ´0Çå³ıram
-    assign data_in2_a = ~ram_adj? (read_flag ? flash_dataram_datain : 0) : (en_clr ? ram_data_clr : (read_flag ? 0 : flash_dataram_datain));   
-	 
-	 assign address1_a = ram_adj ? (read_flag ? addr_flash_dataram : 0) : (en_clr ? address_clr : (read_flag ? 0 : addr_flash_dataram));    //¸ù¾İram_adjµÄ²»Í¬,ramµÄµØÖ·Îªram¿ØÖÆÄ£¿éÊä³öµÄµØÖ·»òÕßÊı¾İÉÏ´«Ä£¿éµÄµØÖ·
-	 assign address2_a = ~ram_adj ? (read_flag ? addr_flash_dataram : 0) : (en_clr ? address_clr : (read_flag ? 0 : addr_flash_dataram)); 
+assign en_RAM = en_MCU;
+assign we_RAM = we_MCU;
+assign address_RAM = address_MCU;
 
-	 assign flash_dataram_dataout = ram_adj ? (read_flag ? data_out1_a : data_out2_a) : (~read_flag ? data_out1_a : data_out2_a);
- 
-/*Êı¾İramµÄb¶Ë¿ÚÌá¹©¸øMCUºÍ²É¼¯Ê¹ÓÃ*/
-	 assign en1_b = ram_adj ? (read_flag ? 0 : en_rw) : en_MCU_dataram; //ram_adjÎª0Ê±Ñ¡ÖĞRAM1¹©¸øMCU¶ÁĞ´Ê¹ÓÃ£¬ram_adjÎª1Ê±Ñ¡ÖĞRAM2¹©¸øMCU¶ÁĞ´Ê¹ÓÃ 
-	 assign we1_b = ram_adj ? we_rw : (we_MCU_dataram ? we_MCU_dataram : 0);
-	 
-	 assign en2_b = ~ram_adj ? (read_flag ? 0 : en_rw) : en_MCU_dataram;
-	 assign we2_b = ~ram_adj ? we_rw : (we_MCU_dataram ? we_MCU_dataram : 0);
-	
-    assign data_in1_b = ram_adj? ram1_control_data_out : MCU_datain;   //ÅĞ¶ÏĞ´ÈëµÄÊÇAD²É¼¯µÄÊı¾İ£¬»¹ÊÇMCUËÍÀ´µÄÊı¾İ
-	 assign data_in2_b = ~ram_adj? ram2_control_data_out : MCU_datain;
-
-	 assign ram1_control_data_in = data_out1_b;     
-	 assign ram2_control_data_in = data_out2_b;
-	 
-	 assign MCU_dataram_dataout = ram_adj ? data_out2_b : data_out1_b;
-
-	 assign address1_b = ram_adj ? address_out : addr_MCU_dataram;    //¸ù¾İram_adjµÄ²»Í¬,ramµÄµØÖ·Îªram¿ØÖÆÄ£¿éÊä³öµÄµØÖ·»òÕßÊı¾İÉÏ´«Ä£¿éµÄµØÖ·
-	 assign address2_b = ~ram_adj ? address_out : addr_MCU_dataram;
-	 
-	 //assign addr_MCU_dataram = ((change_bypass ? addr_ram_FPGA[14] : address_MCU[14]) == 0)? (change_bypass ?addr_ram_FPGA[13:0]:address_MCU[13:0]) : 0;
-	 assign addr_MCU_dataram = (address_RAM[14] == 0)? address_RAM[13:0] : 0;
-	 
-	 always@(negedge clk or posedge rst)                //Ê±ÖÓÏÂ½µÑØ¸Ä±äÄÜÆ×Êı¾İRAM¶ÁĞ´ºÍÆ¬Ñ¡Ê¹ÄÜ        
-	 begin
-	  if(rst)
-	   begin
-	    en_MCU_dataram<=0;
-		 we_MCU_dataram<=0;
-		end
-     else
-	   begin
-       en_MCU_dataram <= ((address_RAM[14] == 0) && en_RAM) ? en_RAM : 0;	
-		 we_MCU_dataram <= ((address_RAM[14] == 0) && en_RAM) ? we_RAM : 0;
-      end		 
-	 end
-	 
 /*MCU¿ØÖÆµÄinforam¶Ë¿Úa¸³Öµ*/
 	 assign ena_infoRAM = en_MCU_infoRAM_a;	
 	 assign wea_infoRAM = we_MCU_infoRAM_a;
@@ -554,48 +245,23 @@ assign address_RAM = change_bypass ? address_FPGA:address_MCU;
 	 
 	 assign flash_ram_dataout = (flash_en_ram && (flash_ram_addr[14] == 0)) ? flash_dataram_dataout : ((flash_ram_addr[12:0]>1023) ? 8'hFF: dataout_infoRAM );  //Ğ´ÈëFlashµÄÊı¾İ
 	 
-	 Data_value Data_value(
-	 .clk(clk),
-	 .rst(rst),
-	 .address(addr_MCU_sctram),
-	 .sct_period(sct_period), 
-    .sct1_time(sct1_time),
-    .sct2_time(sct2_time),               
-    .sct3_time(sct3_time), 
-    .sct4_time(sct4_time), 
-    .sct5_time(sct5_time), 
-    .sct6_time(sct6_time), 
-    .sct7_time(sct7_time), 
-    .sct8_time(sct8_time), 
-    .sct9_time(sct9_time), 
-    .sct10_time(sct10_time), 
-    .sct11_time(sct11_time), 
-    .sct12_time(sct12_time), 
-    .sct13_time(sct13_time), 
-    .sct14_time(sct14_time), 
-    .sct15_time(sct15_time), 
-    .sct16_time(sct16_time),
-	 .data_CF(MCU_sctram_dataout),
-	 .ram_change(ram_change)
-	 );
-
 
 //****************************************************//
 //                        RAM	  		       				//
 //****************************************************//
 	RAM1 RAM1 (
 		.clka(clk), // input clka
-		.ena(en1_a), // input ena
-		.wea(we1_a), // input [0 : 0] wea
-		.addra(address1_a), // input [13 : 0] addra
-		.dina(data_in1_a), // input [7 : 0] dina
-		.douta(data_out1_a), // output [7 : 0] douta
+		.ena(en_flash_dataram), // input ena
+		.wea(we_flash_dataram), // input [0 : 0] wea
+		.addra(addr_flash_dataram), // input [13 : 0] addra
+		.dina(flash_dataram_datain), // input [7 : 0] dina
+		.douta(flash_dataram_dataout), // output [7 : 0] douta
 		.clkb(clk), // input clkb
-		.enb(en1_b), // input enb
-		.web(we1_b), // input [0 : 0] web
-		.addrb(address1_b), // input [13 : 0] addrb
-		.dinb(data_in1_b), // input [7 : 0] dinb
-		.doutb(data_out1_b) // output [7 : 0] doutb
+		.enb(), // input enb
+		.web(), // input [0 : 0] web
+		.addrb(), // input [13 : 0] addrb
+		.dinb(), // input [7 : 0] dinb
+		.doutb() // output [7 : 0] doutb
 		);
 
 

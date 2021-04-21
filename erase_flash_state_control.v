@@ -21,7 +21,7 @@
 module erase_flash_state_control(
 	input clk,rst,en_erase,end_erase_page,
 	input [23:0]erase_addr_finish,erase_addr_row,
-	input [1:0]erase_addr_row_error,
+	input [1:0]erase_addr_row_error, // 2 为坏块，1为好块， 0为未检索
 	output reg[2:0] erase_state
 	);
 

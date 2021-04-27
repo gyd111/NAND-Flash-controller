@@ -19,7 +19,7 @@
 //
 //////////////////////////////////////////////////////////////////////////////////
 module state_control(
-	input rst,ready_busy,clk,clk12M,en_erase_page,en_write_page,en_read,
+	input rst,ready_busy,clk,clk12M,en_erase_page,en_write_page,en_read, // clk is 24M
 	output reg end_write_page,end_read,end_erase_page,
 	output reg [4:0] state,
 

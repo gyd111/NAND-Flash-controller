@@ -21,10 +21,10 @@ module test_nandflash(
 	 
     input clk,rst,clk6M,clk12M,clk1M,clk1_5M,clk_96M,
 	
-	input en_MCU,
-	input we_MCU,                      //0表示读，1表示写               
-	input [14:0] address_MCU,
-	input [7:0]MCU_datain,
+	input en_waveRam,
+	input we_waveRam,                      //0表示读，1表示写               
+	input [13:0] address_waveRam,
+	input [15:0] data_in_waveRam,
 	output [7:0] MCU_dataout,
 	
 	input ready_busy,                  // 空闲和忙信号
@@ -66,6 +66,7 @@ output inout_flag
 
 
 //**************        ram 模块        **************//
+	wire		read_en_ram;
 	wire en1_a,en1_b,en2_a,en2_b,we1_a,we1_b,we2_a,we2_b;
 	wire [13:0] address1_a,address1_b,address2_a,address2_b;
 	wire [7:0] data_in1_a,data_in1_b,data_in2_a,data_in2_b;
@@ -88,7 +89,7 @@ output inout_flag
 	wire [14:0]addr_MCU_sctram;	
 	
 	wire en_flash_dataram,we_flash_dataram;
-	wire [7:0]flash_dataram_dataout,flash_dataram_datain;
+	wire [7:0]flash_dataram_dataout,flash_dataram_datain; 		// 从flash中读取并经过ECC校验后的数据
 	wire [13:0]addr_flash_dataram;
 	 
 //**************       NandFlash 模块       **************//
@@ -97,7 +98,6 @@ output inout_flag
 (*mark_debug="TRUE"*)    wire ready_busy;
 	 wire [7:0]flash_datain;
 	 wire [7:0]flash_dataout;
-	 wire inout_flag;
 	 wire read_flag;
 	 
 	 wire [14:0]flash_ram_addr;
@@ -200,7 +200,8 @@ output inout_flag
 	 .nandflash_busy_Noresponse(nandflash_busy_Noresponse),
 	 .flash_cmd_incomplete(flash_cmd_incomplete),
 	 .end_read(end_read),
-	 .en_read_FPGA(en_read),
+	 .en_read_FPGA(),
+	 .read_en_ram(read_en_ram),
 	 .read_addr_FPGA(read_addr_FPGA),
 	 .state( state)
     );
@@ -209,41 +210,24 @@ output inout_flag
 //*****************************************************//
 //                  RAM的控制信号选择                   //
 //****************************************************//
-assign en_RAM = en_MCU;
-assign we_RAM = we_MCU;
-assign address_RAM = address_MCU;
 
 /*MCU控制的inforam端口a赋值*/
-	 assign ena_infoRAM = en_MCU_infoRAM_a;	
-	 assign wea_infoRAM = we_MCU_infoRAM_a;
-	 assign addra_infoRAM = address_RAM[9:0];
-	 assign datain_infoRAM = MCU_datain;
-	 assign addr_MCU_sctram = ((address_RAM[14:12] == 3'b100) && en_RAM) ? address_RAM : 0;	
-	 assign MCU_dataout = en_RAM ? ((address_RAM[14:12] == 3'b100) ? MCU_sctram_dataout : ((address_RAM[14] == 0) ? MCU_dataram_dataout :0)) : 0;
-    assign data_ram_FPGA = MCU_dataout;
-	 always@(negedge clk or posedge rst)                //时钟下降沿改变infoRAM读写和片选使能
-	 begin
-	   if(rst)
-		 begin
-		   en_MCU_infoRAM_a <= 0;
-		   we_MCU_infoRAM_a <= 0;
-		 end
-		else
-		 begin
-		   en_MCU_infoRAM_a <= ((address_RAM[14:12] == 3'b101) && en_RAM)? en_RAM : 0;
-			we_MCU_infoRAM_a <= ((address_RAM[14:12] == 3'b101) && en_RAM)? we_RAM : 0;
-		 end
-	 end
+	 assign ena_infoRAM = en_waveRam;	
+	 assign wea_infoRAM = we_waveRam;
+	 assign addra_infoRAM = address_waveRam;
+	 assign datain_infoRAM = data_in_waveRam;
+
 /*flash控制的inforam端口b赋值*/
-	 assign enb_infoRAM = (flash_en_ram && (flash_ram_addr[14] == 1)) ? flash_en_ram : 0;                 //端口b片选使能
-	 assign addrb_infoRAM = (flash_en_ram && (flash_ram_addr[14] == 1)) ? flash_ram_addr[13:0] : 0;       //端口b地址
+
+	 assign enb_infoRAM 		= flash_en_ram;                 //端口b片选使能
+	 assign addrb_infoRAM 		= flash_ram_addr[13:0];       	//端口b地址
+	 assign flash_ram_dataout 	=  dataout_infoRAM;  			//写入Flash的数据
+	 assign en_flash_dataram 		= read_en_ram;  			// flash 数据读出来之后的写ram使能          
+	 assign we_flash_dataram 		= flash_we_ram;
+	 assign flash_dataram_datain 	= flash_ram_datain;
+	 assign addr_flash_dataram 		= flash_ram_addr[13:0];
 	 
-	 assign en_flash_dataram = (flash_en_ram && (flash_ram_addr[14] == 0)) ? flash_en_ram : 0;            
-	 assign we_flash_dataram = (flash_en_ram && (flash_ram_addr[14] == 0)) ? flash_we_ram : 0;
-	 assign flash_dataram_datain = (flash_en_ram && (flash_ram_addr[14] == 0)) ? flash_ram_datain : 0;
-	 assign addr_flash_dataram = (flash_en_ram && (flash_ram_addr[14] == 0)) ? flash_ram_addr[13:0] : 0;
 	 
-	 assign flash_ram_dataout = (flash_en_ram && (flash_ram_addr[14] == 0)) ? flash_dataram_dataout : ((flash_ram_addr[12:0]>1023) ? 8'hFF: dataout_infoRAM );  //写入Flash的数据
 	 
 
 //****************************************************//
@@ -280,7 +264,7 @@ assign address_RAM = address_MCU;
 		.doutb(data_out2_b) // output [7 : 0] doutb
     );
 
-	info_RAM info_RAM (
+    info_RAM info_RAM (
   .clka(clk), // input clka
   .ena(ena_infoRAM), // input ena
   .wea(wea_infoRAM), // input [0 : 0] wea

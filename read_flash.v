@@ -24,19 +24,19 @@
 	input [4:0] state,
 	input [13:0] read_data_cnt,
 	input [7:0] read_flash_dataout,
-	output [7:0] read_flash_datain,
+	output [7:0] read_flash_datain, 			// write to FLSAH: cmd addrss 
 	
 	input [23:0] addr_row,
 	output reg [1:0]read_addr_row_error,		//读操作坏块检索，用于输入了块地址后检查该地址是否为坏块,0为未检索，1为好块，2为块坏
 		
-	output [11:0] read_bad_block_ram_addr,		//检索坏块表地址
+	output [11:0] read_bad_block_ram_addr,		//检索坏块表地址 raw address is 12 bits
 	input read_bad_block_ram_dataout,			//坏块表输出的数据，1表示该块为坏块，0表示该块为好块
 	
-	output read_en_ECCram,							//操作ECCram的使能信号
-	output reg read_we_ECCram,						//操作ECCram的写控制信号
+	output read_en_ECCram,						//操作ECCram的使能信号
+	output reg read_we_ECCram,					//操作ECCram的写控制信号
 	output [9:0] read_ECCram_addr,				//操作ECCram的地址
 	output reg [7:0] read_ECCram_datain,		//ECCram输入信号，用于把每128B生成的3B的ECC码写入ram，以及把每页读出的ECC数据写入RAM
-	input [7:0] read_ECCram_dataout,				//ECCram输出信号，用于写完1页ECC码后，把该页生成的ECC码和flash读出的ECC码全读出进行对比
+	input [7:0] read_ECCram_dataout,			//ECCram输出信号，用于写完1页ECC码后，把该页生成的ECC码和flash读出的ECC码全读出进行对比
 	output reg read_ECC_success,
 	
 	output [7:0]read_data,
@@ -48,13 +48,13 @@
 	 reg read_en_ECCram_write,read_en_ECCram_read;
 	 reg m;
 	 reg [1:0] i,j;
-	 reg [9:0] ECCram_addr1_reg,ECCram_addr2_reg;				//在ECC比较的时候记录ram地址，因为两组ECC码存在同一个ram中，需要用两个寄存器记录两组ECC码当前的地址
-	 reg [3:0] ECCcompare_state;										//在ECC比较的时候进行计数，前6个状态从ram里读取数据，组成两个完整的ECC码进行比较
-	 reg [23:0] read_ECC_data1,read_ECC_data2;					//完整的ECC码两组，用来进行比较。ECC1为随读数产生的数据，ECC2为读出的数据，如果两组数据不一致，需要根据ECC2来修改
-	 reg [23:0] ECC_compare_reg;										//对两组完整的ECC码进行异或得到的结果,用于判断校验结果
-	 reg [9:0] ECC_compare1,ECC_compare2;							//异或得到的ECC校验值中有用的部分，从高到低分别为cp5,cp3,cp1,rp13,rp11,rp9,rp7,rp5,rp3,rp1
-	 reg [6:0] ECC_cnt;													//ECC计数器，用于在ECC比较的过程中记录进行到第几个ECC码的比较
-	 reg [9:0] read_ECCram_addr_write,read_ECCram_addr_read;	//读/写时操作ECCram的地址
+	 reg [9:0] ECCram_addr1_reg,ECCram_addr2_reg;			//在ECC比较的时候记录ram地址，因为两组ECC码存在同一个ram中，需要用两个寄存器记录两组ECC码当前的地址
+	 reg [3:0] ECCcompare_state;							//在ECC比较的时候进行计数，前6个状态从ram里读取数据，组成两个完整的ECC码进行比较
+	 reg [23:0] read_ECC_data1,read_ECC_data2;				//完整的ECC码两组，用来进行比较。ECC1为随读数产生的数据，ECC2为读出的数据，如果两组数据不一致，需要根据ECC2来修改
+	 reg [23:0] ECC_compare_reg;							//对两组完整的ECC码进行异或得到的结果,用于判断校验结果
+	 reg [9:0] ECC_compare1,ECC_compare2;					//异或得到的ECC校验值中有用的部分，从高到低分别为cp5,cp3,cp1,rp13,rp11,rp9,rp7,rp5,rp3,rp1
+	 reg [6:0] ECC_cnt;										//ECC计数器，用于在ECC比较的过程中记录进行到第几个ECC码的比较
+	 reg [9:0] read_ECCram_addr_write,read_ECCram_addr_read;//读/写时操作ECCram的地址
 	 
 //*************     read_write_cmd模块      *************//
 	wire [7:0] cmd_start,cmd_finish,cmd_data;
@@ -73,8 +73,8 @@
 	assign read_data = read_flash_dataout;
 	
 	assign readECC_cnt[6:0] = read_data_cnt[6:0];			
-	assign cmd_start = 8'h00;										//起始命令00
-	assign cmd_finish = 8'h30;										//结束命令30
+	assign cmd_start = 8'h00;									//起始命令00
+	assign cmd_finish = 8'h30;									//结束命令30
 	assign addr_column = 16'h0000;								//列地址固定为0，每次从每一页的开头开始读
 		
 	assign read_flash_datain = en_read ? (cmd_data | addr_data) : 0;
@@ -89,7 +89,7 @@
 			else
 				read_ECC_start <= 0;
 	end
-	assign read_bad_block_ram_addr = addr_row[18:7];	//用组合逻辑是为了确保ram输出的状态确实是当前行地址的状态，否则会因为延迟导致行地址上一个为坏块，这一块为好块时也跳到下一块
+	assign read_bad_block_ram_addr = addr_row[18:7];	//用组合逻辑是为了确保ram输出的状态确实是当前行地址的状态，否则会因为延迟导致行地址上一个为坏块，这一块为好块时也跳到下一块 block address is addr_row[18:7]
 	
 	always @(posedge clk or posedge rst)					//写地址初始化,检索坏块表以及每次写完一页后自动+1
 	begin
@@ -103,8 +103,8 @@
 			if(en_read)
 			begin
 				if(read_bad_block_ram_dataout)		
-				if(m == 0)
-					m <= 1;
+				if(m == 0)						// 此处的延时 和 write_flash中的延时 不同 不是很理解。。
+					m <= 1; 
 				else
 				begin
 					m <= 0;
@@ -127,8 +127,8 @@
 		begin
 			i <= 0;
 			j <= 0;
-			read_en_ECCram_write <= 0;					//ECCram使能
-			read_we_ECCram <= 0;					//ECCram写使能
+			read_en_ECCram_write <= 0;			//ECCram使能
+			read_we_ECCram <= 0;				//ECCram写使能
 			read_ECCram_addr_write <= 0;		//ECCram地址
 			read_ECCram_datain <= 0;			//输出到ECCram中的ECC码，分为两种，一种是每读128B数据产生3B的，另一种是从flash里读出的
 		end
@@ -137,8 +137,8 @@
 			if(state == 10)						//若状态为10，则处于向ram里存ECC码的过程
 			begin
 				read_ECCram_addr_write[9] <= read_data_cnt[13];
-				if(!read_data_cnt[13])			//向ECCram中写入随着读数据产生的ECC数据
-					if(!tRead)
+				if(!read_data_cnt[13])			//向ECCram中写入随着读数据产生的ECC数据，前8192个数据还是需要进行ECC校验的数据
+					if(!tRead)					// tRead == 0 时是ECC的阶段
 					begin
 						read_en_ECCram_write <= 1;
 						if(i < 2)
@@ -202,13 +202,13 @@
 		begin
 			read_ECC_data1 <= 0;					//从ram里输出的随读数产生的ECC码,从高到低分别为cp,rp2,rp1
 			read_ECC_data2 <= 0;					//从ram里输出的从flash里读出的ECC码
-			read_ECC_success <=0 ;				//ECC码检查完成标志信号
-			ECCram_addr1_reg <= 1;				//ECC比较中的地址1
-			ECCram_addr2_reg <= 10'b1000_0000_01;				//ECC比较中的地址2
-			ECCcompare_state <= 0;				//ECC比较状态
+			read_ECC_success <=0 ;					//ECC码检查完成标志信号
+			ECCram_addr1_reg <= 1;					//ECC比较中的地址1
+			ECCram_addr2_reg <= 10'b1000_0000_01;	//ECC比较中的地址2
+			ECCcompare_state <= 0;					//ECC比较状态
 			ECC_cnt <= 0;							//ECC计数器
-			read_ECCram_addr_read <= 0;			//ECCram地址
-			read_en_ECCram_read <= 0;			//ECCram使能信号
+			read_ECCram_addr_read <= 0;				//ECCram地址
+			read_en_ECCram_read <= 0;				//ECCram使能信号
 			ECC_compare1 <= 0;
 			ECC_compare2 <= 0;
 			read_data_ECCstate <= 0;
@@ -218,7 +218,7 @@
 		begin
 			if(state == 18)
 			begin
-			if(ECC_cnt < 64)
+			if(ECC_cnt < 64) // 8192B = 128B * 64，有64次ECC校验数据，每次ECC校验有3B数据
 			begin
 				read_en_ECCram_read <=1;
 				read_ECC_success <= 0;

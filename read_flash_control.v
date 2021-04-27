@@ -24,7 +24,7 @@ module read_flash_control(
 	
 	input [23:0]read_addr_row_reg,
 	output reg [23:0] read_addr_row,
-	input [7:0]read_data,
+	input [7:0]read_data,//从 Flash 读出来的数据
 	input [13:0]read_data_cnt,								//读数据计数
 	input [1:0]read_addr_row_error,						//读操作坏块检索，用于输入了块地址后检查该地址是否为坏块,0为未检索，1为好块，2为块坏
 	input [1:0]read_data_ECCstate,						//数据ECC状态，0为没完成检测，1为ECC校验正确，2为ECC校验错误但是可以修正，3为ECC校验后数据无效
@@ -39,7 +39,7 @@ module read_flash_control(
 	 reg [1:0] read_page;
 	 reg date_change_complete;
 	 wire [3:0] read_state;
-	 reg read_data_useless;
+	 reg 	[1:0]	read_data_useless;
 	 reg [6:0]read_addr_reg; 			//用于页数判断的地址缓存
 	 reg n;
 	 
@@ -66,13 +66,15 @@ module read_flash_control(
 	 always @(posedge clk or posedge rst)			//产生数据无效标志
 	 begin
 		if(rst)
-			read_data_useless <= 0;
+			read_data_useless <= 2'd0;
 		else
-			if(read_state == 8 | read_state == 12)
-				read_data_useless <= 1;
+			if(read_state == 8 && ~read_data_change_addr[15])			// 前4096无法纠正数据无效
+				read_data_useless[0] <= 1'b1;
+			else if(read_state == 8 && read_data_change_addr[15])		// 后4096无法纠正数据无效
+				read_data_useless[1] <= 1'b1;
 			else
-				if(read_state == 11)
-					read_data_useless <= 0;
+				if(read_state == 13)     			// 结束读的时候把read_data_useless 信号清零
+					read_data_useless <= 2'd0;
 	 end
 	 
 	 always @(posedge clk or posedge rst)			//产生行地址，不直接赋值是为了配合底层的时序
@@ -238,7 +240,7 @@ module read_flash_control(
 		end
 	 end
 	 
-	 always @(posedge clk or posedge rst)		//若数据无效且处于第三页，在ram的256字节处写入55
+	 always @(posedge clk or posedge rst)		//数据无效时在ram的8192 和 8193 位置写入 0x55，否则写入0x00 
 	 begin
 		if(rst)
 		begin
@@ -248,19 +250,30 @@ module read_flash_control(
 			read_we_ram3 <= 0;
 		end
 		else
-			if(read_state == 11)
-			begin
-				read_en_ram3 <= 1;
-				read_we_ram3 <= 1;
-				read_ram_addr3 <= 255;
-				read_ram_datain3 <= 8'h55;
+			if(read_state == 10) begin 					// read_state10 写入数据有效信息
+				read_en_ram3 	<= 1;
+				read_we_ram3 	<= 1;
+				read_ram_addr3	<= 15'd8192;
+				if(read_data_useless[0])  				// 前 4096 byte 数据无效
+					read_ram_datain3 	<= 8'h55;
+				else 
+					read_ram_datain3 	<= 8'h00;	
 			end
-			else
+			else if(read_state == 11) begin
+				read_en_ram3 	<= 1;
+				read_we_ram3 	<= 1;
+				read_ram_addr3	<= 15'd8193;
+				if(read_data_useless[1])  				// 后 4096 byte 数据无效
+					read_ram_datain3 	<= 8'h55;
+				else 
+					read_ram_datain3 	<= 8'h00;				
+			end 
+			else 
 			begin
-				read_en_ram3 <= 0;
-				read_we_ram3 <= 0;
-				read_ram_addr3 <= 0;
-				read_ram_datain3 <= 0;
+				read_en_ram3 		<= 0;
+				read_we_ram3 		<= 0;
+				read_ram_addr3 		<= 0;
+				read_ram_datain3	<= 0;
 			end
 	 end
 	 
@@ -268,7 +281,7 @@ module read_flash_control(
 	 
 	 
 //****************************************************//
-//    	  		  擦FLASH状态控制 								//
+//    	  		  read FLASH状态控制 								//
 //****************************************************//	 
 
 	read_flash_state_control read_flash_state_control(

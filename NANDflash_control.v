@@ -27,7 +27,7 @@ module NANDflash_control(
 	input en_read_FPGA,                    //Data_download模块输出的读使能信号
 	input [23:0] read_addr_FPGA,          //Data_download模块输出的读地址
 	input [7:0]flash_ram_dataout,
-	output [7:0]flash_ram_datain,
+	output [7:0]flash_ram_datain,         // flash 写入ram中的数据
 	output flash_en_ram,flash_we_ram,
 	output reg[14:0]flash_ram_addr,
 	
@@ -51,16 +51,16 @@ module NANDflash_control(
 	output flash_cmd_incomplete,
 	output nandflash_busy_Noresponse,
 	output end_read ,
-	
+	output  read_en_ram,
 	output wire [4:0]state
 	
     );
 //*************   command_receive模块    *************//
 	wire [23:0] erase_addr_start,erase_addr_finish;		//擦除模块的起始地址和结束地址
 	wire [23:0] read_addr_row_reg,read_addr_row_reg_1;	//读模块的行地址
-	wire en_read_1,en_read;
+	wire en_read_1,en_write;
+    wire en_read;
 	wire en_erase;
-	wire en_write;
 	wire en_log_write;
     
 	wire [23:0] init_addr_row;									//写模块的初始化写地址
@@ -77,9 +77,9 @@ module NANDflash_control(
 	wire [23:0] read_addr_row;
 	
 	wire [7:0]read_ram_dataout;
-	wire [7:0]read_ram_datain;
+	wire [7:0]read_ram_datain;                  // 从flash中读取出来并经过ECC校验后的数据
 	wire [14:0]read_ram_addr;
-	wire read_en_ram,read_we_ram;
+	wire read_we_ram;
 	
 //*************   write_flash_control模块    *************//
 	wire en_write_page,end_write_page;
@@ -107,7 +107,7 @@ module NANDflash_control(
 
 	wire [1:0]erase_addr_row_error;						//擦除操作坏块检索，用于输入了块地址后检查该地址是否为坏块,0为未检索，1为好块，2为块坏
 	
-	assign flash_en_ram = en_write ? write_en_ram :  read_en_ram ;
+	assign flash_en_ram = en_write ? write_en_ram :  0 ;
 	assign flash_we_ram = read_we_ram;
 	assign flash_ram_datain = read_ram_datain;
 	assign write_ram_dataout = en_write ? flash_ram_dataout : 0;
@@ -265,7 +265,7 @@ module NANDflash_control(
     .write_addr_row_error(write_addr_row_error), 
     .write_success(write_success), 
     .read_addr_row(read_addr_row), 
-    .read_data(read_data), 
+    .read_data(read_data), // 从FLASH读出来的数据
     .read_data_cnt(read_data_cnt), 
     .read_addr_row_error(read_addr_row_error), 
     .read_data_ECCstate(read_data_ECCstate), 

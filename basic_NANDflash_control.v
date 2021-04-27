@@ -116,16 +116,16 @@ module basic_NANDflash_control(
     wire[9:0]add_ecc;
 
 	assign flash_datain = read_flash_datain | write_flash_datain | erase_flash_datain;
-	assign write_flash_dataout = (state == 16) ? flash_dataout : 0;
-	assign read_flash_dataout = (state == 10) ? flash_dataout : 0;
-	assign erase_flash_dataout = (state == 16) ? flash_dataout : 0;
+	assign write_flash_dataout = (state == 16) ? flash_dataout : 0; // 处于读状态寄存器的时候
+	assign read_flash_dataout  = (state == 10) ? flash_dataout : 0;	// 处于读flash的时候
+	assign erase_flash_dataout = (state == 16) ? flash_dataout : 0; // 处于读状态寄存器的时候
 
-	assign en_ECCram = (state == 9) ? write_en_ECCram : (((state == 10) | (state == 18)) ? read_en_ECCram : en_ecc);//测试ecc ram 需要改为0 
-	assign we_ECCram = (state == 9) ? write_we_ECCram : (((state == 10) | (state == 18)) ? read_we_ECCram : 0);
-	assign ECCram_datain = (state == 9) ? write_ECCram_datain : (((state == 10) | (state == 18)) ? read_ECCram_datain : 0);
+	assign en_ECCram       = (state == 9) ? write_en_ECCram : (((state == 10) | (state == 18)) ? read_en_ECCram : 0);//测试ecc ram 需要改为0 
+	assign we_ECCram       = (state == 9) ? write_we_ECCram : (((state == 10) | (state == 18)) ? read_we_ECCram : 0);
+	assign ECCram_datain   = (state == 9) ? write_ECCram_datain : (((state == 10) | (state == 18)) ? read_ECCram_datain : 0);
 	assign write_ECCram_dataout = (state == 9) ? ECCram_dataout : 0;
-	assign read_ECCram_dataout = ((state == 10) | (state == 18)) ? ECCram_dataout : 0;
-	assign ECCram_addr = (state == 9) ? write_ECCram_addr : (((state == 10) | (state == 18)) ? read_ECCram_addr : add_ecc);//测试ecc ram 需要改为0 
+	assign read_ECCram_dataout  = ((state == 10) | (state == 18)) ? ECCram_dataout : 0;
+	assign ECCram_addr     = (state == 9) ? write_ECCram_addr : (((state == 10) | (state == 18)) ? read_ECCram_addr : 0);//测试ecc ram 需要改为0 
 
 	assign bad_block_ram_addr = (state == 17) ? bad_block_renew_addr : (en_write_page ? write_bad_block_ram_addr : (en_erase_page ? erase_bad_block_ram_addr : (en_read ? read_bad_block_ram_addr : 0)));
 	assign en_bad_block_ram = 1;
@@ -289,7 +289,7 @@ module basic_NANDflash_control(
   .addra(init_bad_block_ram_addr), 	// input [8 : 0] addra
   .dina(init_bad_block_ram_data), 	// input [7 : 0] dina
   .clkb(clk),							   // input clkb
-  .enb(en_bad_block_ram),				// input enb
+  .enb(en_bad_block_ram),				// input enb, always be 1
   .web(we_bad_block_ram), 				// input [0 : 0] web
   .addrb(bad_block_ram_addr),			// input [11 : 0] addrb
   .dinb(bad_block_ram_datain), 		// input [0 : 0] dinb

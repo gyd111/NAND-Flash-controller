@@ -84,7 +84,7 @@ module erase_flash(
 	end
 	else
 		if(en_erase_page)
-		if(state == 16)
+		if(state == 16) // state 16 ÊÇ¶ÁÈ¡×´Ì¬¼Ä´æÆ÷ÖµµÄ×´Ì¬
 		begin
 			if(n < 2)
 				n <= n+1;

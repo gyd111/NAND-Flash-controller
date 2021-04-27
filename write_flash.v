@@ -1,23 +1,9 @@
 `timescale 1ns / 1ps
 //////////////////////////////////////////////////////////////////////////////////
-// Company: 
-// Engineer: 
-// 
 // Create Date:    16:43:47 04/03/2018 
 // Design Name: 
 // Module Name:    write_flash 
-// Project Name: 
-// Target Devices: 
-// Tool versions: 
-// Description: 
-//
-// Dependencies: 
-//
-// Revision: 
-// Revision 0.01 - File Created
-// Additional Comments: 
-//
-//////////////////////////////////////////////////////////////////////////////////
+
 module write_flash(
 	input clk,rst,tWrite,en_write_page,
 	input [4:0]state,
@@ -25,20 +11,19 @@ module write_flash(
 	output [7:0]write_flash_datain,					//写模块输出的数据，与flash的IO口对接
 	input [7:0]write_flash_dataout,					//写模块输入的数据，与flash的IO口对接，用于读状态寄存器
 	output reg [1:0]write_success,					//写成功标志,用于写操作中检测状态寄存器BIT0判断写入状况。0为未检测操作，1为操作成功，2为操作失败
-	output reg write_complete,							//写完成标志，用于写操作中检测状态寄存器BIT0判断写入状态。0位没完成检测，1为完成检测（完成检测不一定检测结果时正确的）
+	output reg write_complete,						//写完成标志，用于写操作中检测状态寄存器BIT0判断写入状态。0位没完成检测，1为完成检测（完成检测不一定检测结果时正确的）
 	
-	input [7:0] write_data,								//外部输入的写数据
-	
-	input [23:0] addr_row,								//输入写地址
+	input [7:0] write_data,							//外部输入的写数据	
+	input [23:0] addr_row,							//输入写地址
 	output reg [1:0]write_addr_row_error,			//写操作坏块检索，用于输入了块地址后检查该地址是否为坏块,0为未检索，1为好块，2为块坏
 		
-	output [11:0] write_bad_block_ram_addr,		//检索坏块表地址
-	input write_bad_block_ram_dataout,				//坏块表输出的数据，1表示该块为坏块，0表示该块为好块
+	output [11:0] write_bad_block_ram_addr,		     //检索坏块表地址
+	input write_bad_block_ram_dataout,				 //坏块表输出的数据，1表示该块为坏块，0表示该块为好块
 	
-	output reg write_en_ECCram,write_we_ECCram,	//操作ECCram的控制信号
-	output reg [9:0] write_ECCram_addr,				//操作ECCram的地址
-	output reg [7:0] write_ECCram_datain,			//ECCram输入信号，用于把每128B生成的3B的ECC码写入ram
-	input [7:0] write_ECCram_dataout					//ECCram输出信号，用于写完1页原始数据后，把该页生成的ECC码写入flash
+	output reg write_en_ECCram,write_we_ECCram,	     //操作ECCram的控制信号
+	output reg [9:0] write_ECCram_addr,				 //操作ECCram的地址
+	output reg [7:0] write_ECCram_datain,			 //ECCram输入信号，用于把每128B生成的3B的ECC码写入ram
+	input [7:0] write_ECCram_dataout			     //ECCram输出信号，用于写完1页原始数据后，把该页生成的ECC码写入flash
     );
 	 
 	reg [7:0] write_ECC_data;
@@ -61,10 +46,11 @@ module write_flash(
 	reg m;
 
 	assign writeECC_cnt[6:0] = write_data_cnt[6:0];			
-	assign cmd_start = 8'h80;										//起始命令80
-	assign cmd_finish = 8'h10;										//结束命令10
+	assign cmd_start   = 8'h80;									//起始命令80
+	assign cmd_finish  = 8'h10;									//结束命令10
 	assign addr_column = 16'h0000;								//列地址固定为0，每次从每一页的开头开始写
 	
+	// state == 11 是上电后的第一个复位命令
 	assign write_flash_datain = (state == 11) ? 8'hff : (en_write_page ? (cmd_data | addr_data | write_data | write_ECC_data) : 0);
 
 	always @(posedge clk or posedge rst)
@@ -94,7 +80,7 @@ module write_flash(
 				m <= 1;
 			else
 			begin
-				if(write_bad_block_ram_dataout)	
+				if(write_bad_block_ram_dataout)	// 坏块
 						write_addr_row_error <= 2;
 				else
 					write_addr_row_error <= 1;

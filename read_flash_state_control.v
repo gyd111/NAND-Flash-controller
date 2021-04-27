@@ -25,7 +25,7 @@ module read_flash_state_control(
 	input [1:0]read_page,									//读页数，表示当前所读的页数为一个周期的哪一页
 	input date_change_complete,							//数据修正完成标志
 	input [4:0] state,
-	input read_data_useless,
+	input 	[1:0]	read_data_useless,
 	output reg [3:0] read_state
     );
 
@@ -63,7 +63,7 @@ module read_flash_state_control(
 		4:														//读数据
 			begin
 				n <= 0;
-				if(state == 18)
+				if(state == 18)									// 此时已经读完了数据区和ECC区的数据 需要进行ECC校验
 					read_state <= 5;
 				else
 					read_state <= 4;
@@ -96,19 +96,13 @@ module read_flash_state_control(
 				read_state <= 7;
 		8:														//记录数据无效标志
 				read_state <= 5;
-		9:														//判断数据无效标志位
-			if(read_data_useless)
+		9:													//	ECC 完成后写入数据有效信息
 				read_state <= 10;
-			else
-				read_state <= 13;
-		10:													//判断读页数
-			if(read_page == 2)
-				read_state <= 11;
-			else
-				read_state <= 12;
-		11:													//为第三页时，在256字节处写55
-			read_state <= 13;
-		12:													//不为第三页时，保持数据无效标志位
+		10:  												// 一个时钟周期用于判断前4096数据是否有效，并写入有效信息
+			read_state	<= 11;						
+		11 : 												//一个时钟周期用于判断后4096数据是否有效，并写入有效信息		
+			read_state	<= 13;								
+		12:													// 未使用
 			read_state <= 13;
 		13:													//结束该次读
 			read_state <= 1;

@@ -1,6 +1,7 @@
 {
     "files.encoding": "gb2312",
-    "files.autoSave":"onFocusChange"
-    "files.autoSaveDelay": 1000
+    "files.autoSave": "onFocusChange",
+    "editor.fontSize": 22
+    
 
 }

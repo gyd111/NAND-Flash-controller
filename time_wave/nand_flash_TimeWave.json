@@ -1,0 +1,23 @@
+{"signal" : [
+    ["READ",
+        {"name":"clk",      "wave": "p.........."},
+        {"name":"state",    "wave": "===.======", "period":"", "phase":"0.5", "data":"0 1 11 12", },
+        {"name":"cle",      "wave":"0..h...l...", "period":"0.5"},
+        {"name":"we",       "wave":"0...ppl..", "period":"0.5"},
+        {"name":"flash_datain", "wave":"xxx=...xxxx", "period": "0.5", data:"ff"},
+        {"name":"r_b",      "wave":"h..l.h...."},
+        {"name":"test",     "wave": "0..1..0"},
+        {}
+
+
+
+
+    ]
+
+
+
+
+
+],
+
+}

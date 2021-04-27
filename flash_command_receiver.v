@@ -27,7 +27,7 @@ module flash_command_receiver(
 	output reg en_erase,en_read,
 	output reg [23:0] erase_addr_start,erase_addr_finish,		//擦除模块的起始地址和结束地址
 	output reg [23:0] read_addr_row_reg,							//读模块的起始和结束行地址
-   output reg en_write,                                     //使能写16k能谱数据
+   	output reg en_write,                                     //使能写8192B的回波数据
 	
 	output reg en_init_flash_addr,
 	input end_init_flash_addr,
@@ -349,7 +349,7 @@ module flash_command_receiver(
 			  begin
 			    if(cmd[31:24] == 8'hAC)
 			      begin
-			      en_write <=1;
+			      	en_write <=1;
 		    		en_infopage_write <= 1;
 					end_cmd5 <= 1;
 			      end

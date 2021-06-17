@@ -155,6 +155,10 @@ module write_flash_control(
 						   write_addr_row[18:7] <= write_addr_row[18:7];
 							write_addr_row[6:0] <= 127;
 						  end
+					   else if(write_state == 11) begin                         //写信息页失败后进行跳块
+							write_addr_row[18:7] <= write_addr_row[18:7]+1;
+							write_addr_row[6:0] <= 0;				   
+					   end 
 						else
 						 write_addr_row <= write_addr_row; 
 				     end

@@ -28,7 +28,7 @@ module read_flash_control(
 	input [13:0]read_data_cnt,								//读数据计数
 	input [1:0]read_addr_row_error,						//读操作坏块检索，用于输入了块地址后检查该地址是否为坏块,0为未检索，1为好块，2为块坏
 	input [1:0]read_data_ECCstate,						//数据ECC状态，0为没完成检测，1为ECC校验正确，2为ECC校验错误但是可以修正，3为ECC校验后数据无效
-	input [15:0]read_data_change_addr,					//需要修改的数据所在位置，前13位为错误的字节地址，后3位为翻转位为该字节的位置
+	input [16:0]read_data_change_addr,					//需要修改的数据所在位置，前13位为错误的字节地址，后3位为翻转位为该字节的位置
 	
 	input [7:0]read_ram_dataout,
 	output [7:0]read_ram_datain,
@@ -54,7 +54,7 @@ module read_flash_control(
 	 reg [14:0]read_ram_addr2;
 	 reg read_en_ram2,read_we_ram2;
 
-	 reg [7:0]read_ram_datain3;			//数据无效时用于在ram的256字节处写入55
+	 reg [7:0]read_ram_datain3;			//数据无效时用于在ram的8192和8193地址处写入55
  	 reg [14:0]read_ram_addr3;
  	 reg read_en_ram3,read_we_ram3;
  
@@ -68,9 +68,9 @@ module read_flash_control(
 		if(rst)
 			read_data_useless <= 2'd0;
 		else
-			if(read_state == 8 && ~read_data_change_addr[15])			// 前4096无法纠正数据无效
+			if(read_data_ECCstate == 3 && ~read_data_change_addr[16])			// 前4096无法纠正数据无效
 				read_data_useless[0] <= 1'b1;
-			else if(read_state == 8 && read_data_change_addr[15])		// 后4096无法纠正数据无效
+			else if(read_data_ECCstate == 3 && read_data_change_addr[16])		// 后4096无法纠正数据无效
 				read_data_useless[1] <= 1'b1;
 			else
 				if(read_state == 13)     			// 结束读的时候把read_data_useless 信号清零
@@ -163,15 +163,16 @@ module read_flash_control(
 		else
 		begin
 			if(read_state == 7)
-				if(n == 0)
+				if(n == 0)				// read data from save ram
 				begin
 					read_en_ram2 <= 1;
-					read_we_ram2 <= 1;
+					read_we_ram2 <= 0;
 					read_ram_addr2[12:0] <= read_data_change_addr[15:3];
 					read_ram_addr2[14:13] <= 0;
 					n <= 1;
 				end
-				else
+				else begin
+					read_we_ram2 		<= 1;
 					case(read_data_change_addr[2:0])
 					3'b000:
 					begin
@@ -228,6 +229,7 @@ module read_flash_control(
 						date_change_complete <= 1;
 					end
 					endcase
+				end
 			else
 			begin
 				n <= 0;

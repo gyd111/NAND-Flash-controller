@@ -19,7 +19,7 @@
 //////////////////////////////////////////////////////////////////////////////////
 module test_nandflash(
 	 
-    input clk,rst,clk6M,clk12M,clk1M,clk1_5M,clk_96M,
+    input clk,rst,clk6M,clk12M,clk1M,clk1_5M,clk_96M, // clk is 24M
 	
 	input en_waveRam,
 	input we_waveRam,                      //0表示读，1表示写               
@@ -73,7 +73,7 @@ output inout_flag
 	wire [7:0] data_out1_a,data_out1_b,data_out2_a,data_out2_b;
 	
 	wire ena_infoRAM,enb_infoRAM,wea_infoRAM;
-	wire [9:0] addra_infoRAM,addrb_infoRAM;
+	wire [13:0] addra_infoRAM,addrb_infoRAM;
 	wire [7:0] datain_infoRAM,dataout_infoRAM;
 	
 	wire en_RAM,we_RAM;
@@ -93,9 +93,9 @@ output inout_flag
 	wire [13:0]addr_flash_dataram;
 	 
 //**************       NandFlash 模块       **************//
-(*mark_debug="TRUE"*)    wire [7:0]flash_data;
-(*mark_debug="TRUE"*)    wire cle,ale,we,re;
-(*mark_debug="TRUE"*)    wire ready_busy;
+wire [7:0]flash_data;
+wire cle,ale,we,re;
+wire ready_busy;
 	 wire [7:0]flash_datain;
 	 wire [7:0]flash_dataout;
 	 wire read_flag;
@@ -130,7 +130,10 @@ output inout_flag
 	wire [23:0]read_addr_FPGA;
 	wire change_ram1;               //切换ram
 	
-	
+// test 
+wire    [2:0]   en_w_r_e;
+wire    [1:0]   read_data_ECCstate;
+wire	[13:0]	read_data_cnt;
 //*************************************************//
 //                 NAND FLASH接口                   //
 //************************************************//
@@ -150,12 +153,27 @@ output inout_flag
 //    .probe5(ready_busy)
 //);
 
+ila_ctrl_signal ila_ctrl_signal_inst (
+	.clk(clk), // input wire clk
+	.probe0(ce), // input wire [0:0]  probe0  
+	.probe1(cle), // input wire [0:0]  probe1 
+	.probe2(ale), // input wire [0:0]  probe2 
+	.probe3(we), // input wire [0:0]  probe3 
+	.probe4(re), // input wire [0:0]  probe4 
+	.probe5(flash_data), // input wire [7:0]  probe5 
+	.probe6(state), // input wire [4:0]  probe6
+	.probe7(read_data_cnt[6:0]),
+	.probe8(read_data_ECCstate),
+	.probe9(en_w_r_e[2]),
+	.probe10(en_w_r_e[1]),
+	.probe11(en_w_r_e[0])
+);
 	 
 //****************************************************//
 //              MCU指令接收模块									//
 //****************************************************//
 	Command_Receiver Command_Receiver (
-    .clk(clk), 
+    .clk(clk12M), 
     .rst(rst), 
     .start_w( start_w),
     .start_r( start_r),
@@ -203,7 +221,10 @@ output inout_flag
 	 .en_read_FPGA(),
 	 .read_en_ram(read_en_ram),
 	 .read_addr_FPGA(read_addr_FPGA),
-	 .state( state)
+	 .state( state),
+	 .en_w_r_e(en_w_r_e),
+	 .read_data_cnt(read_data_cnt),
+	 .read_data_ECCstate(read_data_ECCstate)
     );
 
 
@@ -219,13 +240,14 @@ output inout_flag
 
 /*flash控制的inforam端口b赋值*/
 
-	 assign enb_infoRAM 		= flash_en_ram;                 //端口b片选使能
-	 assign addrb_infoRAM 		= flash_ram_addr[13:0];       	//端口b地址
-	 assign flash_ram_dataout 	=  dataout_infoRAM;  			//写入Flash的数据
-	 assign en_flash_dataram 		= read_en_ram;  			// flash 数据读出来之后的写ram使能          
-	 assign we_flash_dataram 		= flash_we_ram;
-	 assign flash_dataram_datain 	= flash_ram_datain;
-	 assign addr_flash_dataram 		= flash_ram_addr[13:0];
+	 assign enb_infoRAM 		   = flash_en_ram;                 //端口b片选使能
+	 assign addrb_infoRAM 		   = flash_ram_addr[13:0];       	//端口b地址
+	 assign flash_ram_dataout      =  dataout_infoRAM;  
+	 //flash_en_ram ? dataout_infoRAM : flash_dataram_dataout			//写入Flash的数据
+	 assign en_flash_dataram 	   = read_en_ram;  			// flash 数据读出来之后的写ram使能          
+	 assign we_flash_dataram 	   = flash_we_ram;
+	 assign flash_dataram_datain   = flash_ram_datain;
+	 assign addr_flash_dataram 	   = flash_ram_addr[13:0];
 	 
 	 
 	 
@@ -241,37 +263,39 @@ output inout_flag
 		.dina(flash_dataram_datain), // input [7 : 0] dina
 		.douta(flash_dataram_dataout), // output [7 : 0] douta
 		.clkb(clk), // input clkb
-		.enb(), // input enb
+		.enb(0), // input enb
 		.web(), // input [0 : 0] web
 		.addrb(), // input [13 : 0] addrb
 		.dinb(), // input [7 : 0] dinb
 		.doutb() // output [7 : 0] doutb
 		);
 
-
-	RAM2 RAM2 (
-		.clka(clk), // input clka
-		.ena(en2_a), // input ena
-		.wea(we2_a), // input [0 : 0] wea
-		.addra(address2_a), // input [13 : 0] addra
-		.dina(data_in2_a), // input [7: 0] dina
-		.douta(data_out2_a), // output [7 : 0] douta
-		.clkb(clk), // input clkb
-		.enb(en2_b), // input enb
-		.web(we2_b), // input [0 : 0] web
-		.addrb(address2_b), // input [13 : 0] addrb
-		.dinb(data_in2_b), // input [7 : 0] dinb
-		.doutb(data_out2_b) // output [7 : 0] doutb
-    );
-
-    info_RAM info_RAM (
+// RAM2 暂时未使用
+//	RAM2 RAM2 (
+//		.clka(clk), // input clka
+//		.ena(en2_a), // input ena
+//		.wea(we2_a), // input [0 : 0] wea
+//		.addra(address2_a), // input [13 : 0] addra
+//		.dina(data_in2_a), // input [7: 0] dina
+//		.douta(data_out2_a), // output [7 : 0] douta
+//		.clkb(clk), // input clkb
+//		.enb(en2_b), // input enb
+//		.web(we2_b), // input [0 : 0] web
+//		.addrb(address2_b), // input [13 : 0] addrb
+//		.dinb(data_in2_b), // input [7 : 0] dinb
+//		.doutb(data_out2_b) // output [7 : 0] doutb
+//    );
+// 存储要发送的数据
+   info_RAM info_RAM (
   .clka(clk), // input clka
   .ena(ena_infoRAM), // input ena
   .wea(wea_infoRAM), // input [0 : 0] wea
   .addra(addra_infoRAM), // input [7 : 0] addra
   .dina(datain_infoRAM), // input [7 : 0] dina
   .clkb(clk), // input clkb
+  .web(0),
   .enb(enb_infoRAM), // input enb
+  .dinb(0),
   .addrb(addrb_infoRAM), // input [7 : 0] addrb
   .doutb(dataout_infoRAM) // output [7 : 0] doutb
 	);

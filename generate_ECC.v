@@ -21,6 +21,7 @@
 module write_generate_ECC(
 	input	[7:0]	prior_data1,
 	input			clk,
+	input			tclk,
 	input			rst,
 	input			ECC_start,
 	input 		[6:0]	data_cnt1,
@@ -48,6 +49,18 @@ module write_generate_ECC(
 	reg [127:0]	row_xor;
 ///	assign	otp_finish = (data_cnt == 7'b1111111) ? 1 : 0;
 //将8bit的数据依次按位异或得到异或后的值（列异或值）
+	
+	//debug
+//ila_read_gen_ecc your_instance_name (
+//	.clk(tclk), // input wire clk
+//	.probe0(ECC_start), // input wire [0:0]  probe0  
+//	.probe1(cp), // input wire [7:0]  probe1 
+//	.probe2(prior_data), // input wire [7:0]  probe2 
+//	.probe3(data_cnt), // input wire [6:0]  probe3 
+//	.probe4(rp), // input wire [15:0]  probe4 
+//	.probe5(otp_finish), // input wire [0:0]  probe5
+//	.probe6(init_xor_code)
+//);
 	
 	always@(posedge clk or posedge rst)
 	begin

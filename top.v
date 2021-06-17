@@ -29,30 +29,31 @@ module top(
     
     output ale,
     output ce,
+    output	ce2,
     output cle,
     output re,
     output we,
     output wp,
     
-    output reg led1,
+    output led1,
     output led2,
     output n14,
     output n15,
     output p14,
     output p15,
     output test1,
-    output test2,
-    
-    output [4:0]state,
-    input start_r,
-    input start_w,
-    input start_e,
-    output inout_flag//simulation
+    output test2
+/*   signal for simulation*/
+//    output [4:0]state,
+//    input start_r,
+//    input start_w,
+//    input start_e,
+//    output inout_flag//simulation
     );
 
 //*************       ClockÄ£¿é        *************//
 	 wire rst,clk24M,clk6M,clk12M,clk1M,clk1_5M,clk96M,clk1;
-wire [4:0]state;
+
 
 /************************ contorl wire **********************************************/
 wire [6:0]state_en_reg;
@@ -67,15 +68,18 @@ wire [4:0]state;
 wire change_ram;//change ram
 wire test_nf;
 wire [7:0] dq;
+wire    [7:0]   flash_data;
 
+//assign flash_data = dq;
+assign	ce2 = 1'b1; // target2's ce, always disable target2
 assign n14 = cle;
 assign n15 = ale;
 assign p14 = we;
 assign p15 = re;
 assign wp = 1;
 
-assign test1 = 1;
-assign test2 = r_b;
+assign test1 = clk24M;
+assign test2 = clk6M;
 
 //vio_0 inst_vio_0(
 //    .clk(clk24M ),
@@ -94,6 +98,14 @@ assign test2 = r_b;
 //    .clk(clk6M),
 //    .probe0( MCU_dataout)
 //);
+
+vio_re_wr_er vio_re_wr_er_inst (
+  .clk(clk24M),             // input wire clk
+  .probe_out0(start_r),     // output wire [0 : 0] probe_out0
+  .probe_out1(start_w),     // output wire [0 : 0] probe_out1
+  .probe_out2(start_e),      // output wire [0 : 0] probe_out2
+  .probe_in0(state)
+);
 
 always@(posedge rst or posedge clk1)
 begin
@@ -139,10 +151,10 @@ test_nandflash test_nandflash(
     .clk1M(clk1M),
 	.clk6M(clk6M),
 	.rst( rst),
-	.en_MCU( en_MCU ),
-	.we_MCU( 0 ),
-	.address_MCU( add_MCU ),
-	.MCU_datain(  ),
+	.en_waveRam( en_MCU ),
+	.we_waveRam( 0 ),
+	.address_waveRam( add_MCU ),
+	.data_in_waveRam(  ),
 	.MCU_dataout( MCU_dataout ),
 	
     .flash_IO(dq),
@@ -159,22 +171,26 @@ test_nandflash test_nandflash(
 	.state(state),
 	.c_r( change_ram),
 	.ram_adj(test_nf),
-	.inout_flag(inout_flag)
+	.inout_flag(inout_flag)//
 	
 );
 
-always@(posedge clk1 or posedge rst)
-begin
-    if(rst)
-    begin
-        led1 <= 0;
-    end
-    else
-    begin
-        led1 <= ~led1;
-    end
-end
-
+//always@(posedge clk1 or posedge rst)
+//begin
+//    if(rst)
+//    begin
+//        led1 <= 0;
+//    end
+//    else
+//    begin
+//        led1 <= ~led1;
+//    end
+//end
+breath_led  breath_led_inst(
+    .sys_clk   (clk_in),  //50Mhz
+    .sys_rst_n (~rst),  
+    .led       (led1)   
+);
 
 
 

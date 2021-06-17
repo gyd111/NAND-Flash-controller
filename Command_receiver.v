@@ -29,15 +29,15 @@ module Command_Receiver(
        );
 
 
-reg start_r_p,start_w_p,start_e_p,c_r_p;
+reg [2:0] start_r_p,start_w_p,start_e_p;
 wire pos_start_r,pos_start_w,pos_start_e,pos_c_r;
 reg [7:0] cnt_send_cmd;
 reg [2:0]start_send_reg;
 
-parameter read_add          = 24'h01_02_03;
-parameter write_add         = 24'h01_02_03;
-parameter erase_start_add   = 24'h01_02_03;
-parameter erase_end_add     = 24'h01_02_03;
+parameter read_add          = 24'h01_08_04;
+parameter write_add         = 24'h01_08_04;
+parameter erase_start_add   = 24'h01_08_04;
+parameter erase_end_add     = 24'h01_08_04;
 
 
 always@(posedge clk or posedge rst) //¼ì²âÉÏÉıÑØ
@@ -47,14 +47,14 @@ always@(posedge clk or posedge rst) //¼ì²âÉÏÉıÑØ
         start_e_p <= 0;
     end
     else begin
-        start_r_p <= start_r;
-        start_w_p <= start_w;
-        start_e_p <= start_e;
+        start_r_p <= {start_r_p[1:0], start_r};
+        start_w_p <= {start_w_p[1:0], start_w};
+        start_e_p <= {start_e_p[1:0], start_e};
     end
-assign pos_start_r = ~start_r_p && start_r;
-assign pos_start_w = ~start_w_p && start_w;
-assign pos_start_e = ~start_e_p && start_e;
-always@(posedge clk) begin
+assign pos_start_r = ~start_r_p[2] && start_r_p[1];
+assign pos_start_w = ~start_w_p[2] && start_w_p[1];
+assign pos_start_e = ~start_e_p[2] && start_e_p[1];
+always@(posedge clk or posedge rst) begin
     if(rst) begin
         cmd <= 0;
         start_cmd <= 0;

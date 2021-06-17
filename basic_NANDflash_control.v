@@ -19,7 +19,7 @@
 //
 //////////////////////////////////////////////////////////////////////////////////
 module basic_NANDflash_control(
-	input clk,rst,clk12M,clk24M,								// clk is 24M
+	input clk,rst,clk12M,clk24M,								// clk is 6M
 	output [4:0] state,											//状态，用于通知外部模块输入数据的时间
 	input en_write_page,en_read,en_erase_page,			//使能信号
 	output end_write_page,end_read,end_erase_page,		//结束信号
@@ -44,7 +44,7 @@ module basic_NANDflash_control(
 	output [13:0]read_data_cnt,								//读数据计数
 	output [1:0]read_addr_row_error,							//读操作坏块检索，用于输入了块地址后检查该地址是否为坏块,0为未检索，1为好块，2为块坏
 	output [1:0]read_data_ECCstate,							//数据ECC状态，0为没完成检测，1为ECC校验正确，2为ECC校验错误但是可以修正，3为ECC校验后数据无效
-	output [15:0]read_data_change_addr,						//需要修改的数据所在位置，前13位为错误的字节地址，后3位为翻转位为该字节的位置
+	output [16:0]read_data_change_addr,						//需要修改的数据所在位置，前13位为错误的字节地址，后3位为翻转位为该字节的位置
 //	output read_data_flag,
 	
 	input [23:0]erase_addr_row,
@@ -114,7 +114,18 @@ module basic_NANDflash_control(
 //**************    测试 需要删除  *******************//
     wire en_ecc;
     wire[9:0]add_ecc;
-
+    wire	[6:0]	ECC_cnt;
+//debug
+//ECC_signa your_instance_name (
+//	.clk(clk24M), // input wire clk
+//	.probe0(state), // input wire [4:0]  probe0  
+//	.probe1(en_ECCram), // input wire [0:0]  probe1 
+//	.probe2(we_ECCram), // input wire [0:0]  probe2 
+//	.probe3(ECCram_addr), // input wire [9:0]  probe3 
+//	.probe4(ECCram_datain), // input wire [7:0]  probe4 
+//	.probe5(ECCram_dataout), // input wire [7:0]  probe5
+//	.probe6(ECC_cnt)
+//);
 	assign flash_datain = read_flash_datain | write_flash_datain | erase_flash_datain;
 	assign write_flash_dataout = (state == 16) ? flash_dataout : 0; // 处于读状态寄存器的时候
 	assign read_flash_dataout  = (state == 10) ? flash_dataout : 0;	// 处于读flash的时候
@@ -136,7 +147,14 @@ module basic_NANDflash_control(
 	assign erase_bad_block_ram_dataout = en_erase_page ? bad_block_ram_dataout : 0;
 	
 	assign bad_block_ram_dataout = (en_write_page | en_erase_page | en_read) ? bad_block_ram_dataout_reg : 0;
-
+   //assign bad_block_ram_dataout = (en_write_page | en_erase_page | en_read) ? (bad_block_ram_addr == 12'h604 ? temp : bad_block_ram_dataout_reg) : 0;
+    reg  temp;
+    always @(posedge clk24M) begin
+        if(bad_block_ram_addr == 12'h604)
+            temp    <= 1'b1;
+        else
+            temp    <= 1'b0;
+    end 
 //****************************************************//
 //    	  		  test mod   							//
 //****************************************************//	 
@@ -161,6 +179,7 @@ module basic_NANDflash_control(
 	.ready_busy(ready_busy),
 	.clk(clk),
 	.clk12M(clk12M),
+	.tclk(clk24M),             // 测试使用，用来做ila的时钟信号
 	.en_erase_page(en_erase_page),
 	.en_write_page(en_write_page),
 	.en_read(en_read),
@@ -194,6 +213,7 @@ module basic_NANDflash_control(
 	
 	write_flash write_flash(
 	.clk(clk),
+	.tclk(clk24M),				// for test 
 	.rst(rst),
 	.tWrite(tWrite),
 	.en_write_page(en_write_page),
@@ -221,6 +241,7 @@ module basic_NANDflash_control(
 
 	read_flash read_flash(
 	.clk(clk),
+	.tclk(clk24M),             // 临时信号
 	.rst(rst),
 	.tRead(tRead),
 	.en_read(en_read),
@@ -240,7 +261,8 @@ module basic_NANDflash_control(
 	.read_ECC_success(read_ECC_success),
 	.read_data(read_data),
 	.read_data_ECCstate(read_data_ECCstate),
-	.read_data_change_addr(read_data_change_addr)
+	.read_data_change_addr(read_data_change_addr),
+	.ECC_cnt(ECC_cnt)
 	);
 
 //****************************************************//

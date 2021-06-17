@@ -33,7 +33,7 @@ module clk_div(
     output reg clk1
     );
 
-
+wire locked;
 reg rst_t = 0;
 reg [7:0]cnt_rst = 0;
 assign rst = rst_t;

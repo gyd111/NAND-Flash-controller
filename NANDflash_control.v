@@ -26,12 +26,12 @@ module NANDflash_control(
 	
 	input en_read_FPGA,                    //Data_download模块输出的读使能信号
 	input [23:0] read_addr_FPGA,          //Data_download模块输出的读地址
-	input [7:0]flash_ram_dataout,
+	input [7:0]flash_ram_dataout,			// data need to write in flash or data read form save ram
 	output [7:0]flash_ram_datain,         // flash 写入ram中的数据
-	output flash_en_ram,flash_we_ram,
+	output flash_en_ram,flash_we_ram,      // flash 写ram的控制信号
 	output reg[14:0]flash_ram_addr,
 	
-	output inout_flag,							//表示flash的io口何时处于输出何时处于输入用,0为输入，1为输出
+	output reg inout_flag,							//表示flash的io口何时处于输出何时处于输入用,0为输入，1为输出
 	output read_flag,								//表示flash处于读状态，因为读状态时FLASH操作的ram和MCU操作的是两个ram，而写状态是操作同一个ram		
 	
 	input [7:0]flash_dataout,									//flash输出数据
@@ -52,9 +52,15 @@ module NANDflash_control(
 	output nandflash_busy_Noresponse,
 	output end_read ,
 	output  read_en_ram,
-	output wire [4:0]state
+	output wire [4:0]state,
+	// test 
+	output [2:0]   en_w_r_e,
+	output [1:0]   read_data_ECCstate,
+	output	[13:0]	read_data_cnt
 	
     );
+    
+
 //*************   command_receive模块    *************//
 	wire [23:0] erase_addr_start,erase_addr_finish;		//擦除模块的起始地址和结束地址
 	wire [23:0] read_addr_row_reg,read_addr_row_reg_1;	//读模块的行地址
@@ -103,23 +109,27 @@ module NANDflash_control(
 	wire [13:0]read_data_cnt;								//读数据计数
 	wire [1:0]read_addr_row_error;						//读操作坏块检索，用于输入了块地址后检查该地址是否为坏块,0为未检索，1为好块，2为块坏
 	wire [1:0]read_data_ECCstate;							//数据ECC状态，0为没完成检测，1为ECC校验正确，2为ECC校验错误但是可以修正，3为ECC校验后数据无效
-	wire [15:0]read_data_change_addr;					//需要修改的数据所在位置，前13位为错误的字节地址，后3位为翻转位为该字节的位置								//读标志，用于区分状态10内是在读数据还是在读ECC码。
+	wire [16:0]read_data_change_addr;					//需要修改的数据所在位置，前13位为错误的字节地址，后3位为翻转位为该字节的位置								//读标志，用于区分状态10内是在读数据还是在读ECC码。
 
 	wire [1:0]erase_addr_row_error;						//擦除操作坏块检索，用于输入了块地址后检查该地址是否为坏块,0为未检索，1为好块，2为块坏
 	
 	assign flash_en_ram = en_write ? write_en_ram :  0 ;
 	assign flash_we_ram = read_we_ram;
 	assign flash_ram_datain = read_ram_datain;
-	assign write_ram_dataout = en_write ? flash_ram_dataout : 0;
-	assign read_ram_dataout = flash_ram_dataout;
+	assign write_ram_dataout 	= en_write ? flash_ram_dataout : 0;
+	assign read_ram_dataout 	= en_write ? 0 : flash_ram_dataout;
 	
-	assign inout_flag = (state == 10 | state == 16) ? 1 : 0;
+//	assign inout_flag = (state == 10 | state == 16) ? 1 : 0;
 	
 //	assign en_read = change_bypass ? en_read_FPGA:en_read_1;     //修改，取消fpga读取
     assign en_read = en_read_1;
 //	assign read_addr_row_reg = change_bypass ? read_addr_FPGA:read_addr_row_reg_1;   //修改
     assign read_addr_row_reg = read_addr_row_reg_1;
 	assign read_flag = en_read_1;
+
+    //test
+    assign en_w_r_e = {en_write,en_read, en_erase};
+
 	
    //***************测试程序段**************//
 	always@(negedge clk or posedge rst)
@@ -130,6 +140,17 @@ module NANDflash_control(
        flash_ram_addr <= en_write ? write_ram_addr :  read_ram_addr;	  
 	end
 	
+	
+	always @(posedge clk) begin
+	   if(rst)
+	       inout_flag  <= 1'b0;
+	   else begin
+	       if(state == 10 || state == 16)
+	           inout_flag  <= 1'b1;
+	   else 
+	       inout_flag      <= 1'b0;
+	   end 
+	end 
 //****************************************************//
 //    	 			  flash相关命令接受 						//
 //****************************************************//	 
@@ -259,7 +280,7 @@ module NANDflash_control(
     .init_bad_block_ram_addr(init_bad_block_ram_addr), 
     .en_init_bad_block_ram(en_init_bad_block_ram), 
     .we_init_bad_block_ram(we_init_bad_block_ram), 
-    .write_data(write_data), 
+    .write_data(write_data), 									// data write to flash 
     .write_addr_row(write_addr_row), 
     .write_data_cnt(write_data_cnt), 
     .write_addr_row_error(write_addr_row_error), 

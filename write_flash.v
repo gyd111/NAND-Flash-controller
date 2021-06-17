@@ -6,6 +6,7 @@
 
 module write_flash(
 	input clk,rst,tWrite,en_write_page,
+	input	tclk,
 	input [4:0]state,
 	input [13:0]write_data_cnt,						//写数据计数
 	output [7:0]write_flash_datain,					//写模块输出的数据，与flash的IO口对接
@@ -239,6 +240,7 @@ module write_flash(
 	write_generate_ECC write_generate_ECC(
 	.prior_data1(write_data),
 	.rst(rst),
+	.tclk(tclk),
 	.clk(clk),
 	.ECC_start(write_ECC_start),
 	.data_cnt1(writeECC_cnt),

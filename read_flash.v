@@ -21,6 +21,7 @@
  module read_flash(
 	input clk,rst,tRead,
 	input en_read,
+	input  tclk,                               // 测试使用
 	input [4:0] state,
 	input [13:0] read_data_cnt,
 	input [7:0] read_flash_dataout,
@@ -40,13 +41,14 @@
 	output reg read_ECC_success,
 	
 	output [7:0]read_data,
+	output	[6:0]	ECC_cnt,	
 	
 	output reg [1:0]read_data_ECCstate,			//数据ECC状态，0为没完成检测，1为ECC校验正确，2为ECC校验错误但是可以修正，3为ECC校验后数据无效
-	output reg [15:0]read_data_change_addr		//需要修改的数据所在位置，前13位为错误的字节地址，后3位为翻转位为该字节的位置
+	output reg [16:0]read_data_change_addr		//需要修改的数据所在位置，前13位为错误的字节地址，后3位为翻转位为该字节的位置
     );
 	 
 	 reg read_en_ECCram_write,read_en_ECCram_read;
-	 reg m;
+	 reg [1:0] m;
 	 reg [1:0] i,j;
 	 reg [9:0] ECCram_addr1_reg,ECCram_addr2_reg;			//在ECC比较的时候记录ram地址，因为两组ECC码存在同一个ram中，需要用两个寄存器记录两组ECC码当前的地址
 	 reg [3:0] ECCcompare_state;							//在ECC比较的时候进行计数，前6个状态从ram里读取数据，组成两个完整的ECC码进行比较
@@ -55,6 +57,7 @@
 	 reg [9:0] ECC_compare1,ECC_compare2;					//异或得到的ECC校验值中有用的部分，从高到低分别为cp5,cp3,cp1,rp13,rp11,rp9,rp7,rp5,rp3,rp1
 	 reg [6:0] ECC_cnt;										//ECC计数器，用于在ECC比较的过程中记录进行到第几个ECC码的比较
 	 reg [9:0] read_ECCram_addr_write,read_ECCram_addr_read;//读/写时操作ECCram的地址
+	 reg	[9:0]	read_ECCram_addr_write_d1;
 	 
 //*************     read_write_cmd模块      *************//
 	wire [7:0] cmd_start,cmd_finish,cmd_data;
@@ -64,11 +67,14 @@
 	wire [7:0] addr_data;
 
 //*************    read_generate_ECC模块    *************//
-	reg read_ECC_start;			//ECC开始标志位，为1时对数据进行预处理，为0时获得cp和rp
+	wire read_ECC_start;			//ECC开始标志位，为1时对数据进行预处理，为0时获得cp和rp
 	wire [6:0] readECC_cnt;		//ECC计数，用于每128次计数产生3B的ECC码
 	wire [7:0] read_ECC_cp;		//ECC码列校验
 	wire [15:0] read_ECC_rp;	//ECC码行校验
 //	wire write_ECC_out;			//ECC码输出标志位（暂时用定时来确定ECC码的输出，用不到该信号，根据仿真的时序结果来判断最终是否需要用该信号）
+
+
+
 
 	assign read_data = read_flash_dataout;
 	
@@ -79,16 +85,22 @@
 		
 	assign read_flash_datain = en_read ? (cmd_data | addr_data) : 0;
 	
-	always @(posedge clk or posedge rst)
-	begin
-		if(rst)
-			read_ECC_start <= 0;
-		else
-			if( (state == 10) & tRead & ~(read_data_cnt[13]) )		//当处在状态10且tRead为1且计数值小于8K的时候，ECC_start才为1
-				read_ECC_start <= 1;
-			else
-				read_ECC_start <= 0;
-	end
+	always @(posedge clk) begin
+		read_ECCram_addr_write_d1	<= read_ECCram_addr_write;
+	end 
+	
+	
+	assign read_ECC_start = (state == 10) & tRead & (~read_data_cnt[13]);
+//	always @(posedge clk or posedge rst)
+//	begin
+//		if(rst)
+//			read_ECC_start <= 0;
+//		else
+//			if( (state == 10) & tRead & ~(read_data_cnt[13]) )		//当处在状态10且tRead为1且计数值小于8K的时候，ECC_start才为1
+//				read_ECC_start <= 1;
+//			else
+//				read_ECC_start <= 0;
+//	end
 	assign read_bad_block_ram_addr = addr_row[18:7];	//用组合逻辑是为了确保ram输出的状态确实是当前行地址的状态，否则会因为延迟导致行地址上一个为坏块，这一块为好块时也跳到下一块 block address is addr_row[18:7]
 	
 	always @(posedge clk or posedge rst)					//写地址初始化,检索坏块表以及每次写完一页后自动+1
@@ -101,20 +113,18 @@
 	else
 		begin
 			if(en_read)
-			begin
-				if(read_bad_block_ram_dataout)		
-				if(m == 0)						// 此处的延时 和 write_flash中的延时 不同 不是很理解。。
-					m <= 1; 
-				else
-				begin
-					m <= 0;
-					read_addr_row_error <= 2;
-				end
-				else
-					read_addr_row_error <= 1;
-			end
-			else
+			     if(m < 2 )
+			         m   <= m + 1;
+			     else begin
+				     if(read_bad_block_ram_dataout)		
+					   read_addr_row_error <= 2;
+				     else   // read_bad_block_ram_dataout == 0;
+					   read_addr_row_error <= 1;
+			     end
+			else begin 
 				read_addr_row_error <= 0;
+				m   <= 0;
+			end 
 		end
 	end
 
@@ -182,7 +192,7 @@
 				begin
 					read_en_ECCram_write <= 1;
 					read_we_ECCram <= 1;
-					read_ECCram_addr_write[8:0] <= read_data_cnt[8:0]+1;	//空出起始地址
+					read_ECCram_addr_write[8:0] <= read_data_cnt[8:0];	//空出起始地址，数据比cnt落后一个周期，不用空出其实地址，去掉加1
 					read_ECCram_datain <= read_flash_dataout;
 				end
 			end
@@ -309,7 +319,7 @@
 					if((ECC_compare1 == 0)&(ECC_compare2 == 0) )					//判断异或值是否正确，若不正确，对ram地址进行赋值获得需要修改的值的地址
 					begin
 						ECCcompare_state <= 11;
-						ECC_cnt <= ECC_cnt+1;
+						//ECC_cnt <= ECC_cnt+1;			// ECCcompare_state already add 1
 						ECC_compare_reg <= 0;
 						ECC_compare1 <= 0;
 						read_data_ECCstate <= 1;
@@ -325,8 +335,12 @@
 					end
 					else
 					begin
-						read_data_ECCstate <= 3;				
-						ECCcompare_state <= 11;
+					if(ECC_cnt <32)
+					   read_data_change_addr[16] = 1'b0;
+				    else
+				        read_data_change_addr[16] = 1'b1;
+				    read_data_ECCstate <= 3;				
+					ECCcompare_state <= 11;
 					end
 				end
 				11:
@@ -356,10 +370,12 @@
 						read_ECCram_addr_read <= 0;
 					end
 					else
-						read_ECC_success <= 0;
+						read_ECC_success <= 0; //好像这里没有成功归零
 			end
-		else
+		else begin
 			ECC_cnt <= 0;
+			read_ECC_success <= 0;
+		end
 		end
 	end
 	
@@ -396,10 +412,12 @@
 //****************************************************//
 
 	read_generate_ECC read_generate_ECC(
-	.prior_data1(read_data),
+	.prior_data(read_data),
 	.rst(rst),
 	.clk(clk),
-	.ECC_start(read_ECC_start),
+	.tclk(tclk),
+	.tRead(tRead),
+	.ECC_start1(read_ECC_start),
 	.data_cnt1(readECC_cnt),
 	.cp(read_ECC_cp),
 	.rp(read_ECC_rp)

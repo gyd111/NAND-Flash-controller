@@ -19,10 +19,12 @@
 //
 //////////////////////////////////////////////////////////////////////////////////
 module read_generate_ECC(
-	input	[7:0]	prior_data1,
+	input	[7:0]	prior_data,
 	input			clk,
+	input           tclk,          // 测试使用 
+	input			tRead,
 	input			rst,
-	input			ECC_start,
+	input			ECC_start1,
 	input 		[6:0]	data_cnt1,
 //	output reg	[7:0]	ECC_data,
 	output reg	[7:0]		cp,
@@ -37,9 +39,9 @@ module read_generate_ECC(
 //	output	reg	[7:0]	column_xor,
 //	output	reg	[127:0]	row_xor
 	);
-	
-	reg [6:0]data_cnt;
-	reg [7:0]prior_data;
+	reg        ECC_start;
+	reg [6:0]data_cnt, data_cnt2;
+	reg [7:0]prior_data1;
 //	reg ECC_start1;
 	
 	reg	[2:0]		code_time;	//对ECC_data赋值次数
@@ -47,6 +49,24 @@ module read_generate_ECC(
 	reg init_xor_code;	//清除基础行列异或值标志位
 	reg [7:0]	column_xor;
 	reg [127:0]	row_xor;
+
+// debug 
+//ila_read_gen_ecc your_instance_name (
+//	.clk(tclk), // input wire clk
+//	.probe0(ECC_start), // input wire [0:0]  probe0  
+//	.probe1(cp), // input wire [7:0]  probe1 
+//	.probe2(prior_data), // input wire [7:0]  probe2 
+//	.probe3(data_cnt), // input wire [6:0]  probe3 
+//	.probe4(rp), // input wire [15:0]  probe4 
+//	.probe5(otp_finish), // input wire [0:0]  probe5
+//	.probe6(tRead),
+//	.probe7(init_xor_code)
+//);
+
+
+	always @(posedge clk) begin
+	   ECC_start   <= ECC_start1;  
+	end 
 ///	assign	otp_finish = (data_cnt == 7'b1111111) ? 1 : 0;
 //将8bit的数据依次按位异或得到异或后的值（列异或值）
 	
@@ -55,13 +75,14 @@ module read_generate_ECC(
 		if(rst)
 		begin
 			data_cnt <= 0;
-			prior_data <= 0;
+//			prior_data <= 0;
 //			ECC_start1 <= 0;
 		end
 		else
 		begin
-			data_cnt <= data_cnt1;
-			prior_data <= prior_data1;
+			data_cnt    <= data_cnt1;
+			//data_cnt     <= data_cnt2; // data_cnt1 时钟同步到 clk6M的上升沿
+			prior_data1   <= prior_data;
 //			ECC_start1 <= ECC_start;
 		end
 	end
@@ -86,17 +107,8 @@ module read_generate_ECC(
 		end
 	end
 
- assign otp_finish = (data_cnt[6]) & (data_cnt[5]) & (data_cnt[4]) & (data_cnt[3]) & (data_cnt[2]) & (data_cnt[1]) & (data_cnt[0]);
-/*	always @(posedge clk or posedge rst)
-	begin
-		if(rst)
-			otp_finish <= 1'b0;
-		else
-		begin
-			otp_finish <= (data_cnt[6]) & (data_cnt[5]) & (data_cnt[4]) & (data_cnt[3]) & (data_cnt[2]) & (data_cnt[1]) & (data_cnt[0]);
-		end
-	end
-*/	
+ assign otp_finish = &data_cnt;
+
 
 	always @(posedge clk or posedge rst)
 	begin
@@ -110,261 +122,261 @@ module read_generate_ECC(
 			if(ECC_start == 1)
 				case(data_cnt)
 				8'd0:
-					row_xor[0] <= prior_data[7] ^ prior_data[6] ^ prior_data[5] ^ prior_data[4] ^ prior_data[3] ^ prior_data[2] ^ prior_data[1] ^ prior_data[0];
+					row_xor[0] <= ^prior_data;
 				8'd1:
-					row_xor[1] <= prior_data[7] ^ prior_data[6] ^ prior_data[5] ^ prior_data[4] ^ prior_data[3] ^ prior_data[2] ^ prior_data[1] ^ prior_data[0];
+					row_xor[1] <= ^prior_data;
 				8'd2:
-					row_xor[2] <= prior_data[7] ^ prior_data[6] ^ prior_data[5] ^ prior_data[4] ^ prior_data[3] ^ prior_data[2] ^ prior_data[1] ^ prior_data[0];
+					row_xor[2] <= ^prior_data;
 				8'd3:
-					row_xor[3] <= prior_data[7] ^ prior_data[6] ^ prior_data[5] ^ prior_data[4] ^ prior_data[3] ^ prior_data[2] ^ prior_data[1] ^ prior_data[0];
+					row_xor[3] <= ^prior_data;
 				8'd4:
-					row_xor[4] <= prior_data[7] ^ prior_data[6] ^ prior_data[5] ^ prior_data[4] ^ prior_data[3] ^ prior_data[2] ^ prior_data[1] ^ prior_data[0];
+					row_xor[4] <= ^prior_data;
 				8'd5:
-					row_xor[5] <= prior_data[7] ^ prior_data[6] ^ prior_data[5] ^ prior_data[4] ^ prior_data[3] ^ prior_data[2] ^ prior_data[1] ^ prior_data[0];
+					row_xor[5] <= ^prior_data;
 				8'd6:
-					row_xor[6] <= prior_data[7] ^ prior_data[6] ^ prior_data[5] ^ prior_data[4] ^ prior_data[3] ^ prior_data[2] ^ prior_data[1] ^ prior_data[0];
+					row_xor[6] <= ^prior_data;
 				8'd7:
-					row_xor[7] <= prior_data[7] ^ prior_data[6] ^ prior_data[5] ^ prior_data[4] ^ prior_data[3] ^ prior_data[2] ^ prior_data[1] ^ prior_data[0];
+					row_xor[7] <= ^prior_data;
 				8'd8:
-					row_xor[8] <= prior_data[7] ^ prior_data[6] ^ prior_data[5] ^ prior_data[4] ^ prior_data[3] ^ prior_data[2] ^ prior_data[1] ^ prior_data[0];
+					row_xor[8] <= ^prior_data;
 				8'd9:
-					row_xor[9] <= prior_data[7] ^ prior_data[6] ^ prior_data[5] ^ prior_data[4] ^ prior_data[3] ^ prior_data[2] ^ prior_data[1] ^ prior_data[0];
+					row_xor[9] <= ^prior_data;
 				8'd10:
-					row_xor[10] <= prior_data[7] ^ prior_data[6] ^ prior_data[5] ^ prior_data[4] ^ prior_data[3] ^ prior_data[2] ^ prior_data[1] ^ prior_data[0];
+					row_xor[10] <= ^prior_data;
 				8'd11:
-					row_xor[11] <= prior_data[7] ^ prior_data[6] ^ prior_data[5] ^ prior_data[4] ^ prior_data[3] ^ prior_data[2] ^ prior_data[1] ^ prior_data[0];
+					row_xor[11] <= ^prior_data;
 				8'd12:
-					row_xor[12] <= prior_data[7] ^ prior_data[6] ^ prior_data[5] ^ prior_data[4] ^ prior_data[3] ^ prior_data[2] ^ prior_data[1] ^ prior_data[0];
+					row_xor[12] <= ^prior_data;
 				8'd13:
-					row_xor[13] <= prior_data[7] ^ prior_data[6] ^ prior_data[5] ^ prior_data[4] ^ prior_data[3] ^ prior_data[2] ^ prior_data[1] ^ prior_data[0];
+					row_xor[13] <= ^prior_data;
 				8'd14:
-					row_xor[14] <= prior_data[7] ^ prior_data[6] ^ prior_data[5] ^ prior_data[4] ^ prior_data[3] ^ prior_data[2] ^ prior_data[1] ^ prior_data[0];
+					row_xor[14] <= ^prior_data;
 				8'd15:
-					row_xor[15] <= prior_data[7] ^ prior_data[6] ^ prior_data[5] ^ prior_data[4] ^ prior_data[3] ^ prior_data[2] ^ prior_data[1] ^ prior_data[0];
+					row_xor[15] <= ^prior_data;
 				8'd16:
-					row_xor[16] <= prior_data[7] ^ prior_data[6] ^ prior_data[5] ^ prior_data[4] ^ prior_data[3] ^ prior_data[2] ^ prior_data[1] ^ prior_data[0];
+					row_xor[16] <= ^prior_data;
 				8'd17:
-					row_xor[17] <= prior_data[7] ^ prior_data[6] ^ prior_data[5] ^ prior_data[4] ^ prior_data[3] ^ prior_data[2] ^ prior_data[1] ^ prior_data[0];
+					row_xor[17] <= ^prior_data;
 				8'd18:
-					row_xor[18] <= prior_data[7] ^ prior_data[6] ^ prior_data[5] ^ prior_data[4] ^ prior_data[3] ^ prior_data[2] ^ prior_data[1] ^ prior_data[0];
+					row_xor[18] <= ^prior_data;
 				8'd19:
-					row_xor[19] <= prior_data[7] ^ prior_data[6] ^ prior_data[5] ^ prior_data[4] ^ prior_data[3] ^ prior_data[2] ^ prior_data[1] ^ prior_data[0];
+					row_xor[19] <= ^prior_data;
 				8'd20:
-					row_xor[20] <= prior_data[7] ^ prior_data[6] ^ prior_data[5] ^ prior_data[4] ^ prior_data[3] ^ prior_data[2] ^ prior_data[1] ^ prior_data[0];
+					row_xor[20] <= ^prior_data;
 				8'd21:
-					row_xor[21] <= prior_data[7] ^ prior_data[6] ^ prior_data[5] ^ prior_data[4] ^ prior_data[3] ^ prior_data[2] ^ prior_data[1] ^ prior_data[0];
+					row_xor[21] <= ^prior_data;
 				8'd22:
-					row_xor[22] <= prior_data[7] ^ prior_data[6] ^ prior_data[5] ^ prior_data[4] ^ prior_data[3] ^ prior_data[2] ^ prior_data[1] ^ prior_data[0];
+					row_xor[22] <= ^prior_data;
 				8'd23:
-					row_xor[23] <= prior_data[7] ^ prior_data[6] ^ prior_data[5] ^ prior_data[4] ^ prior_data[3] ^ prior_data[2] ^ prior_data[1] ^ prior_data[0];
+					row_xor[23] <= ^prior_data;
 				8'd24:
-					row_xor[24] <= prior_data[7] ^ prior_data[6] ^ prior_data[5] ^ prior_data[4] ^ prior_data[3] ^ prior_data[2] ^ prior_data[1] ^ prior_data[0];
+					row_xor[24] <= ^prior_data;
 				8'd25:
-					row_xor[25] <= prior_data[7] ^ prior_data[6] ^ prior_data[5] ^ prior_data[4] ^ prior_data[3] ^ prior_data[2] ^ prior_data[1] ^ prior_data[0];
+					row_xor[25] <= ^prior_data;
 				8'd26:
-					row_xor[26] <= prior_data[7] ^ prior_data[6] ^ prior_data[5] ^ prior_data[4] ^ prior_data[3] ^ prior_data[2] ^ prior_data[1] ^ prior_data[0];
+					row_xor[26] <= ^prior_data;
 				8'd27:
-					row_xor[27] <= prior_data[7] ^ prior_data[6] ^ prior_data[5] ^ prior_data[4] ^ prior_data[3] ^ prior_data[2] ^ prior_data[1] ^ prior_data[0];
+					row_xor[27] <= ^prior_data;
 				8'd28:
-					row_xor[28] <= prior_data[7] ^ prior_data[6] ^ prior_data[5] ^ prior_data[4] ^ prior_data[3] ^ prior_data[2] ^ prior_data[1] ^ prior_data[0];
+					row_xor[28] <= ^prior_data;
 				8'd29:
-					row_xor[29] <= prior_data[7] ^ prior_data[6] ^ prior_data[5] ^ prior_data[4] ^ prior_data[3] ^ prior_data[2] ^ prior_data[1] ^ prior_data[0];
+					row_xor[29] <= ^prior_data;
 				8'd30:
-					row_xor[30] <= prior_data[7] ^ prior_data[6] ^ prior_data[5] ^ prior_data[4] ^ prior_data[3] ^ prior_data[2] ^ prior_data[1] ^ prior_data[0];
+					row_xor[30] <= ^prior_data;
 				8'd31:
-					row_xor[31] <= prior_data[7] ^ prior_data[6] ^ prior_data[5] ^ prior_data[4] ^ prior_data[3] ^ prior_data[2] ^ prior_data[1] ^ prior_data[0];
+					row_xor[31] <= ^prior_data;
 				8'd32:
-					row_xor[32] <= prior_data[7] ^ prior_data[6] ^ prior_data[5] ^ prior_data[4] ^ prior_data[3] ^ prior_data[2] ^ prior_data[1] ^ prior_data[0];
+					row_xor[32] <= ^prior_data;
 				8'd33:
-					row_xor[33] <= prior_data[7] ^ prior_data[6] ^ prior_data[5] ^ prior_data[4] ^ prior_data[3] ^ prior_data[2] ^ prior_data[1] ^ prior_data[0];
+					row_xor[33] <= ^prior_data;
 				8'd34:
-					row_xor[34] <= prior_data[7] ^ prior_data[6] ^ prior_data[5] ^ prior_data[4] ^ prior_data[3] ^ prior_data[2] ^ prior_data[1] ^ prior_data[0];
+					row_xor[34] <= ^prior_data;
 				8'd35:
-					row_xor[35] <= prior_data[7] ^ prior_data[6] ^ prior_data[5] ^ prior_data[4] ^ prior_data[3] ^ prior_data[2] ^ prior_data[1] ^ prior_data[0];
+					row_xor[35] <= ^prior_data;
 				8'd36:
-					row_xor[36] <= prior_data[7] ^ prior_data[6] ^ prior_data[5] ^ prior_data[4] ^ prior_data[3] ^ prior_data[2] ^ prior_data[1] ^ prior_data[0];
+					row_xor[36] <= ^prior_data;
 				8'd37:
-					row_xor[37] <= prior_data[7] ^ prior_data[6] ^ prior_data[5] ^ prior_data[4] ^ prior_data[3] ^ prior_data[2] ^ prior_data[1] ^ prior_data[0];
+					row_xor[37] <= ^prior_data;
 				8'd38:
-					row_xor[38] <= prior_data[7] ^ prior_data[6] ^ prior_data[5] ^ prior_data[4] ^ prior_data[3] ^ prior_data[2] ^ prior_data[1] ^ prior_data[0];
+					row_xor[38] <= ^prior_data;
 				8'd39:
-					row_xor[39] <= prior_data[7] ^ prior_data[6] ^ prior_data[5] ^ prior_data[4] ^ prior_data[3] ^ prior_data[2] ^ prior_data[1] ^ prior_data[0];
+					row_xor[39] <= ^prior_data;
 				8'd40:
-					row_xor[40] <= prior_data[7] ^ prior_data[6] ^ prior_data[5] ^ prior_data[4] ^ prior_data[3] ^ prior_data[2] ^ prior_data[1] ^ prior_data[0];
+					row_xor[40] <= ^prior_data;
 				8'd41:
-					row_xor[41] <= prior_data[7] ^ prior_data[6] ^ prior_data[5] ^ prior_data[4] ^ prior_data[3] ^ prior_data[2] ^ prior_data[1] ^ prior_data[0];
+					row_xor[41] <= ^prior_data;
 				8'd42:
-					row_xor[42] <= prior_data[7] ^ prior_data[6] ^ prior_data[5] ^ prior_data[4] ^ prior_data[3] ^ prior_data[2] ^ prior_data[1] ^ prior_data[0];
+					row_xor[42] <= ^prior_data;
 				8'd43:
-					row_xor[43] <= prior_data[7] ^ prior_data[6] ^ prior_data[5] ^ prior_data[4] ^ prior_data[3] ^ prior_data[2] ^ prior_data[1] ^ prior_data[0];
+					row_xor[43] <= ^prior_data;
 				8'd44:
-					row_xor[44] <= prior_data[7] ^ prior_data[6] ^ prior_data[5] ^ prior_data[4] ^ prior_data[3] ^ prior_data[2] ^ prior_data[1] ^ prior_data[0];
+					row_xor[44] <= ^prior_data;
 				8'd45:
-					row_xor[45] <= prior_data[7] ^ prior_data[6] ^ prior_data[5] ^ prior_data[4] ^ prior_data[3] ^ prior_data[2] ^ prior_data[1] ^ prior_data[0];
+					row_xor[45] <= ^prior_data;
 				8'd46:
-					row_xor[46] <= prior_data[7] ^ prior_data[6] ^ prior_data[5] ^ prior_data[4] ^ prior_data[3] ^ prior_data[2] ^ prior_data[1] ^ prior_data[0];
+					row_xor[46] <= ^prior_data;
 				8'd47:
-					row_xor[47] <= prior_data[7] ^ prior_data[6] ^ prior_data[5] ^ prior_data[4] ^ prior_data[3] ^ prior_data[2] ^ prior_data[1] ^ prior_data[0];
+					row_xor[47] <= ^prior_data;
 				8'd48:
-					row_xor[48] <= prior_data[7] ^ prior_data[6] ^ prior_data[5] ^ prior_data[4] ^ prior_data[3] ^ prior_data[2] ^ prior_data[1] ^ prior_data[0];
+					row_xor[48] <= ^prior_data;
 				8'd49:
-					row_xor[49] <= prior_data[7] ^ prior_data[6] ^ prior_data[5] ^ prior_data[4] ^ prior_data[3] ^ prior_data[2] ^ prior_data[1] ^ prior_data[0];
+					row_xor[49] <= ^prior_data;
 				8'd50:
-					row_xor[50] <= prior_data[7] ^ prior_data[6] ^ prior_data[5] ^ prior_data[4] ^ prior_data[3] ^ prior_data[2] ^ prior_data[1] ^ prior_data[0];
+					row_xor[50] <= ^prior_data;
 				8'd51:
-					row_xor[51] <= prior_data[7] ^ prior_data[6] ^ prior_data[5] ^ prior_data[4] ^ prior_data[3] ^ prior_data[2] ^ prior_data[1] ^ prior_data[0];
+					row_xor[51] <= ^prior_data;
 				8'd52:
-					row_xor[52] <= prior_data[7] ^ prior_data[6] ^ prior_data[5] ^ prior_data[4] ^ prior_data[3] ^ prior_data[2] ^ prior_data[1] ^ prior_data[0];
+					row_xor[52] <= ^prior_data;
 				8'd53:
-					row_xor[53] <= prior_data[7] ^ prior_data[6] ^ prior_data[5] ^ prior_data[4] ^ prior_data[3] ^ prior_data[2] ^ prior_data[1] ^ prior_data[0];
+					row_xor[53] <= ^prior_data;
 				8'd54:
-					row_xor[54] <= prior_data[7] ^ prior_data[6] ^ prior_data[5] ^ prior_data[4] ^ prior_data[3] ^ prior_data[2] ^ prior_data[1] ^ prior_data[0];
+					row_xor[54] <= ^prior_data;
 				8'd55:
-					row_xor[55] <= prior_data[7] ^ prior_data[6] ^ prior_data[5] ^ prior_data[4] ^ prior_data[3] ^ prior_data[2] ^ prior_data[1] ^ prior_data[0];
+					row_xor[55] <= ^prior_data;
 				8'd56:
-					row_xor[56] <= prior_data[7] ^ prior_data[6] ^ prior_data[5] ^ prior_data[4] ^ prior_data[3] ^ prior_data[2] ^ prior_data[1] ^ prior_data[0];
+					row_xor[56] <= ^prior_data;
 				8'd57:
-					row_xor[57] <= prior_data[7] ^ prior_data[6] ^ prior_data[5] ^ prior_data[4] ^ prior_data[3] ^ prior_data[2] ^ prior_data[1] ^ prior_data[0];
+					row_xor[57] <= ^prior_data;
 				8'd58:
-					row_xor[58] <= prior_data[7] ^ prior_data[6] ^ prior_data[5] ^ prior_data[4] ^ prior_data[3] ^ prior_data[2] ^ prior_data[1] ^ prior_data[0];
+					row_xor[58] <= ^prior_data;
 				8'd59:
-					row_xor[59] <= prior_data[7] ^ prior_data[6] ^ prior_data[5] ^ prior_data[4] ^ prior_data[3] ^ prior_data[2] ^ prior_data[1] ^ prior_data[0];
+					row_xor[59] <= ^prior_data;
 				8'd60:
-					row_xor[60] <= prior_data[7] ^ prior_data[6] ^ prior_data[5] ^ prior_data[4] ^ prior_data[3] ^ prior_data[2] ^ prior_data[1] ^ prior_data[0];
+					row_xor[60] <= ^prior_data;
 				8'd61:
-					row_xor[61] <= prior_data[7] ^ prior_data[6] ^ prior_data[5] ^ prior_data[4] ^ prior_data[3] ^ prior_data[2] ^ prior_data[1] ^ prior_data[0];
+					row_xor[61] <= ^prior_data;
 				8'd62:
-					row_xor[62] <= prior_data[7] ^ prior_data[6] ^ prior_data[5] ^ prior_data[4] ^ prior_data[3] ^ prior_data[2] ^ prior_data[1] ^ prior_data[0];
+					row_xor[62] <= ^prior_data;
 				8'd63:
-					row_xor[63] <= prior_data[7] ^ prior_data[6] ^ prior_data[5] ^ prior_data[4] ^ prior_data[3] ^ prior_data[2] ^ prior_data[1] ^ prior_data[0];
+					row_xor[63] <= ^prior_data;
 				8'd64:
-					row_xor[64] <= prior_data[7] ^ prior_data[6] ^ prior_data[5] ^ prior_data[4] ^ prior_data[3] ^ prior_data[2] ^ prior_data[1] ^ prior_data[0];
+					row_xor[64] <= ^prior_data;
 				8'd65:
-					row_xor[65] <= prior_data[7] ^ prior_data[6] ^ prior_data[5] ^ prior_data[4] ^ prior_data[3] ^ prior_data[2] ^ prior_data[1] ^ prior_data[0];
+					row_xor[65] <= ^prior_data;
 				8'd66:
-					row_xor[66] <= prior_data[7] ^ prior_data[6] ^ prior_data[5] ^ prior_data[4] ^ prior_data[3] ^ prior_data[2] ^ prior_data[1] ^ prior_data[0];
+					row_xor[66] <= ^prior_data;
 				8'd67:
-					row_xor[67] <= prior_data[7] ^ prior_data[6] ^ prior_data[5] ^ prior_data[4] ^ prior_data[3] ^ prior_data[2] ^ prior_data[1] ^ prior_data[0];
+					row_xor[67] <= ^prior_data;
 				8'd68:
-					row_xor[68] <= prior_data[7] ^ prior_data[6] ^ prior_data[5] ^ prior_data[4] ^ prior_data[3] ^ prior_data[2] ^ prior_data[1] ^ prior_data[0];
+					row_xor[68] <= ^prior_data;
 				8'd69:
-					row_xor[69] <= prior_data[7] ^ prior_data[6] ^ prior_data[5] ^ prior_data[4] ^ prior_data[3] ^ prior_data[2] ^ prior_data[1] ^ prior_data[0];
+					row_xor[69] <= ^prior_data;
 				8'd70:
-					row_xor[70] <= prior_data[7] ^ prior_data[6] ^ prior_data[5] ^ prior_data[4] ^ prior_data[3] ^ prior_data[2] ^ prior_data[1] ^ prior_data[0];
+					row_xor[70] <= ^prior_data;
 				8'd71:
-					row_xor[71] <= prior_data[7] ^ prior_data[6] ^ prior_data[5] ^ prior_data[4] ^ prior_data[3] ^ prior_data[2] ^ prior_data[1] ^ prior_data[0];
+					row_xor[71] <= ^prior_data;
 				8'd72:
-					row_xor[72] <= prior_data[7] ^ prior_data[6] ^ prior_data[5] ^ prior_data[4] ^ prior_data[3] ^ prior_data[2] ^ prior_data[1] ^ prior_data[0];
+					row_xor[72] <= ^prior_data;
 				8'd73:
-					row_xor[73] <= prior_data[7] ^ prior_data[6] ^ prior_data[5] ^ prior_data[4] ^ prior_data[3] ^ prior_data[2] ^ prior_data[1] ^ prior_data[0];
+					row_xor[73] <= ^prior_data;
 				8'd74:
-					row_xor[74] <= prior_data[7] ^ prior_data[6] ^ prior_data[5] ^ prior_data[4] ^ prior_data[3] ^ prior_data[2] ^ prior_data[1] ^ prior_data[0];
+					row_xor[74] <= ^prior_data;
 				8'd75:
-					row_xor[75] <= prior_data[7] ^ prior_data[6] ^ prior_data[5] ^ prior_data[4] ^ prior_data[3] ^ prior_data[2] ^ prior_data[1] ^ prior_data[0];
+					row_xor[75] <= ^prior_data;
 				8'd76:
-					row_xor[76] <= prior_data[7] ^ prior_data[6] ^ prior_data[5] ^ prior_data[4] ^ prior_data[3] ^ prior_data[2] ^ prior_data[1] ^ prior_data[0];
+					row_xor[76] <= ^prior_data;
 				8'd77:
-					row_xor[77] <= prior_data[7] ^ prior_data[6] ^ prior_data[5] ^ prior_data[4] ^ prior_data[3] ^ prior_data[2] ^ prior_data[1] ^ prior_data[0];
+					row_xor[77] <= ^prior_data;
 				8'd78:
-					row_xor[78] <= prior_data[7] ^ prior_data[6] ^ prior_data[5] ^ prior_data[4] ^ prior_data[3] ^ prior_data[2] ^ prior_data[1] ^ prior_data[0];
+					row_xor[78] <= ^prior_data;
 				8'd79:
-					row_xor[79] <= prior_data[7] ^ prior_data[6] ^ prior_data[5] ^ prior_data[4] ^ prior_data[3] ^ prior_data[2] ^ prior_data[1] ^ prior_data[0];
+					row_xor[79] <= ^prior_data;
 				8'd80:
-					row_xor[80] <= prior_data[7] ^ prior_data[6] ^ prior_data[5] ^ prior_data[4] ^ prior_data[3] ^ prior_data[2] ^ prior_data[1] ^ prior_data[0];
+					row_xor[80] <= ^prior_data;
 				8'd81:
-					row_xor[81] <= prior_data[7] ^ prior_data[6] ^ prior_data[5] ^ prior_data[4] ^ prior_data[3] ^ prior_data[2] ^ prior_data[1] ^ prior_data[0];
+					row_xor[81] <= ^prior_data;
 				8'd82:
-					row_xor[82] <= prior_data[7] ^ prior_data[6] ^ prior_data[5] ^ prior_data[4] ^ prior_data[3] ^ prior_data[2] ^ prior_data[1] ^ prior_data[0];
+					row_xor[82] <= ^prior_data;
 				8'd83:
-					row_xor[83] <= prior_data[7] ^ prior_data[6] ^ prior_data[5] ^ prior_data[4] ^ prior_data[3] ^ prior_data[2] ^ prior_data[1] ^ prior_data[0];
+					row_xor[83] <= ^prior_data;
 				8'd84:
-					row_xor[84] <= prior_data[7] ^ prior_data[6] ^ prior_data[5] ^ prior_data[4] ^ prior_data[3] ^ prior_data[2] ^ prior_data[1] ^ prior_data[0];
+					row_xor[84] <= ^prior_data;
 				8'd85:
-					row_xor[85] <= prior_data[7] ^ prior_data[6] ^ prior_data[5] ^ prior_data[4] ^ prior_data[3] ^ prior_data[2] ^ prior_data[1] ^ prior_data[0];
+					row_xor[85] <= ^prior_data;
 				8'd86:
-					row_xor[86] <= prior_data[7] ^ prior_data[6] ^ prior_data[5] ^ prior_data[4] ^ prior_data[3] ^ prior_data[2] ^ prior_data[1] ^ prior_data[0];
+					row_xor[86] <= ^prior_data;
 				8'd87:
-					row_xor[87] <= prior_data[7] ^ prior_data[6] ^ prior_data[5] ^ prior_data[4] ^ prior_data[3] ^ prior_data[2] ^ prior_data[1] ^ prior_data[0];
+					row_xor[87] <= ^prior_data;
 				8'd88:
-					row_xor[88] <= prior_data[7] ^ prior_data[6] ^ prior_data[5] ^ prior_data[4] ^ prior_data[3] ^ prior_data[2] ^ prior_data[1] ^ prior_data[0];
+					row_xor[88] <= ^prior_data;
 				8'd89:
-					row_xor[89] <= prior_data[7] ^ prior_data[6] ^ prior_data[5] ^ prior_data[4] ^ prior_data[3] ^ prior_data[2] ^ prior_data[1] ^ prior_data[0];
+					row_xor[89] <= ^prior_data;
 				8'd90:
-					row_xor[90] <= prior_data[7] ^ prior_data[6] ^ prior_data[5] ^ prior_data[4] ^ prior_data[3] ^ prior_data[2] ^ prior_data[1] ^ prior_data[0];
+					row_xor[90] <= ^prior_data;
 				8'd91:
-					row_xor[91] <= prior_data[7] ^ prior_data[6] ^ prior_data[5] ^ prior_data[4] ^ prior_data[3] ^ prior_data[2] ^ prior_data[1] ^ prior_data[0];
+					row_xor[91] <= ^prior_data;
 				8'd92:
-					row_xor[92] <= prior_data[7] ^ prior_data[6] ^ prior_data[5] ^ prior_data[4] ^ prior_data[3] ^ prior_data[2] ^ prior_data[1] ^ prior_data[0];
+					row_xor[92] <= ^prior_data;
 				8'd93:
-					row_xor[93] <= prior_data[7] ^ prior_data[6] ^ prior_data[5] ^ prior_data[4] ^ prior_data[3] ^ prior_data[2] ^ prior_data[1] ^ prior_data[0];
+					row_xor[93] <= ^prior_data;
 				8'd94:
-					row_xor[94] <= prior_data[7] ^ prior_data[6] ^ prior_data[5] ^ prior_data[4] ^ prior_data[3] ^ prior_data[2] ^ prior_data[1] ^ prior_data[0];
+					row_xor[94] <= ^prior_data;
 				8'd95:
-					row_xor[95] <= prior_data[7] ^ prior_data[6] ^ prior_data[5] ^ prior_data[4] ^ prior_data[3] ^ prior_data[2] ^ prior_data[1] ^ prior_data[0];
+					row_xor[95] <= ^prior_data;
 				8'd96:
-					row_xor[96] <= prior_data[7] ^ prior_data[6] ^ prior_data[5] ^ prior_data[4] ^ prior_data[3] ^ prior_data[2] ^ prior_data[1] ^ prior_data[0];
+					row_xor[96] <= ^prior_data;
 				8'd97:
-					row_xor[97] <= prior_data[7] ^ prior_data[6] ^ prior_data[5] ^ prior_data[4] ^ prior_data[3] ^ prior_data[2] ^ prior_data[1] ^ prior_data[0];
+					row_xor[97] <= ^prior_data;
 				8'd98:
-					row_xor[98] <= prior_data[7] ^ prior_data[6] ^ prior_data[5] ^ prior_data[4] ^ prior_data[3] ^ prior_data[2] ^ prior_data[1] ^ prior_data[0];
+					row_xor[98] <= ^prior_data;
 				8'd99:
-					row_xor[99] <= prior_data[7] ^ prior_data[6] ^ prior_data[5] ^ prior_data[4] ^ prior_data[3] ^ prior_data[2] ^ prior_data[1] ^ prior_data[0];
+					row_xor[99] <= ^prior_data;
 				8'd100:
-					row_xor[100] <= prior_data[7] ^ prior_data[6] ^ prior_data[5] ^ prior_data[4] ^ prior_data[3] ^ prior_data[2] ^ prior_data[1] ^ prior_data[0];
+					row_xor[100] <= ^prior_data;
 				8'd101:
-					row_xor[101] <= prior_data[7] ^ prior_data[6] ^ prior_data[5] ^ prior_data[4] ^ prior_data[3] ^ prior_data[2] ^ prior_data[1] ^ prior_data[0];
+					row_xor[101] <= ^prior_data;
 				8'd102:
-					row_xor[102] <= prior_data[7] ^ prior_data[6] ^ prior_data[5] ^ prior_data[4] ^ prior_data[3] ^ prior_data[2] ^ prior_data[1] ^ prior_data[0];
+					row_xor[102] <= ^prior_data;
 				8'd103:
-					row_xor[103] <= prior_data[7] ^ prior_data[6] ^ prior_data[5] ^ prior_data[4] ^ prior_data[3] ^ prior_data[2] ^ prior_data[1] ^ prior_data[0];
+					row_xor[103] <= ^prior_data;
 				8'd104:
-					row_xor[104] <= prior_data[7] ^ prior_data[6] ^ prior_data[5] ^ prior_data[4] ^ prior_data[3] ^ prior_data[2] ^ prior_data[1] ^ prior_data[0];
+					row_xor[104] <= ^prior_data;
 				8'd105:
-					row_xor[105] <= prior_data[7] ^ prior_data[6] ^ prior_data[5] ^ prior_data[4] ^ prior_data[3] ^ prior_data[2] ^ prior_data[1] ^ prior_data[0];
+					row_xor[105] <= ^prior_data;
 				8'd106:
-					row_xor[106] <= prior_data[7] ^ prior_data[6] ^ prior_data[5] ^ prior_data[4] ^ prior_data[3] ^ prior_data[2] ^ prior_data[1] ^ prior_data[0];
+					row_xor[106] <= ^prior_data;
 				8'd107:
-					row_xor[107] <= prior_data[7] ^ prior_data[6] ^ prior_data[5] ^ prior_data[4] ^ prior_data[3] ^ prior_data[2] ^ prior_data[1] ^ prior_data[0];
+					row_xor[107] <= ^prior_data;
 				8'd108:
-					row_xor[108] <= prior_data[7] ^ prior_data[6] ^ prior_data[5] ^ prior_data[4] ^ prior_data[3] ^ prior_data[2] ^ prior_data[1] ^ prior_data[0];
+					row_xor[108] <= ^prior_data;
 				8'd109:
-					row_xor[109] <= prior_data[7] ^ prior_data[6] ^ prior_data[5] ^ prior_data[4] ^ prior_data[3] ^ prior_data[2] ^ prior_data[1] ^ prior_data[0];
+					row_xor[109] <= ^prior_data;
 				8'd110:
-					row_xor[110] <= prior_data[7] ^ prior_data[6] ^ prior_data[5] ^ prior_data[4] ^ prior_data[3] ^ prior_data[2] ^ prior_data[1] ^ prior_data[0];
+					row_xor[110] <= ^prior_data;
 				8'd111:
-					row_xor[111] <= prior_data[7] ^ prior_data[6] ^ prior_data[5] ^ prior_data[4] ^ prior_data[3] ^ prior_data[2] ^ prior_data[1] ^ prior_data[0];
+					row_xor[111] <= ^prior_data;
 				8'd112:
-					row_xor[112] <= prior_data[7] ^ prior_data[6] ^ prior_data[5] ^ prior_data[4] ^ prior_data[3] ^ prior_data[2] ^ prior_data[1] ^ prior_data[0];
+					row_xor[112] <= ^prior_data;
 				8'd113:
-					row_xor[113] <= prior_data[7] ^ prior_data[6] ^ prior_data[5] ^ prior_data[4] ^ prior_data[3] ^ prior_data[2] ^ prior_data[1] ^ prior_data[0];
+					row_xor[113] <= ^prior_data;
 				8'd114:
-					row_xor[114] <= prior_data[7] ^ prior_data[6] ^ prior_data[5] ^ prior_data[4] ^ prior_data[3] ^ prior_data[2] ^ prior_data[1] ^ prior_data[0];
+					row_xor[114] <= ^prior_data;
 				8'd115:
-					row_xor[115] <= prior_data[7] ^ prior_data[6] ^ prior_data[5] ^ prior_data[4] ^ prior_data[3] ^ prior_data[2] ^ prior_data[1] ^ prior_data[0];
+					row_xor[115] <= ^prior_data;
 				8'd116:
-					row_xor[116] <= prior_data[7] ^ prior_data[6] ^ prior_data[5] ^ prior_data[4] ^ prior_data[3] ^ prior_data[2] ^ prior_data[1] ^ prior_data[0];
+					row_xor[116] <= ^prior_data;
 				8'd117:
-					row_xor[117] <= prior_data[7] ^ prior_data[6] ^ prior_data[5] ^ prior_data[4] ^ prior_data[3] ^ prior_data[2] ^ prior_data[1] ^ prior_data[0];
+					row_xor[117] <= ^prior_data;
 				8'd118:
-					row_xor[118] <= prior_data[7] ^ prior_data[6] ^ prior_data[5] ^ prior_data[4] ^ prior_data[3] ^ prior_data[2] ^ prior_data[1] ^ prior_data[0];
+					row_xor[118] <= ^prior_data;
 				8'd119:
-					row_xor[119] <= prior_data[7] ^ prior_data[6] ^ prior_data[5] ^ prior_data[4] ^ prior_data[3] ^ prior_data[2] ^ prior_data[1] ^ prior_data[0];
+					row_xor[119] <= ^prior_data;
 				8'd120:
-					row_xor[120] <= prior_data[7] ^ prior_data[6] ^ prior_data[5] ^ prior_data[4] ^ prior_data[3] ^ prior_data[2] ^ prior_data[1] ^ prior_data[0];
+					row_xor[120] <= ^prior_data;
 				8'd121:
-					row_xor[121] <= prior_data[7] ^ prior_data[6] ^ prior_data[5] ^ prior_data[4] ^ prior_data[3] ^ prior_data[2] ^ prior_data[1] ^ prior_data[0];
+					row_xor[121] <= ^prior_data;
 				8'd122:
-					row_xor[122] <= prior_data[7] ^ prior_data[6] ^ prior_data[5] ^ prior_data[4] ^ prior_data[3] ^ prior_data[2] ^ prior_data[1] ^ prior_data[0];
+					row_xor[122] <= ^prior_data;
 				8'd123:
-					row_xor[123] <= prior_data[7] ^ prior_data[6] ^ prior_data[5] ^ prior_data[4] ^ prior_data[3] ^ prior_data[2] ^ prior_data[1] ^ prior_data[0];
+					row_xor[123] <= ^prior_data;
 				8'd124:
-					row_xor[124] <= prior_data[7] ^ prior_data[6] ^ prior_data[5] ^ prior_data[4] ^ prior_data[3] ^ prior_data[2] ^ prior_data[1] ^ prior_data[0];
+					row_xor[124] <= ^prior_data;
 				8'd125:
-					row_xor[125] <= prior_data[7] ^ prior_data[6] ^ prior_data[5] ^ prior_data[4] ^ prior_data[3] ^ prior_data[2] ^ prior_data[1] ^ prior_data[0];
+					row_xor[125] <= ^prior_data;
 				8'd126:
-					row_xor[126] <= prior_data[7] ^ prior_data[6] ^ prior_data[5] ^ prior_data[4] ^ prior_data[3] ^ prior_data[2] ^ prior_data[1] ^ prior_data[0];
+					row_xor[126] <= ^prior_data;
 				8'd127:
-					row_xor[127] <= prior_data[7] ^ prior_data[6] ^ prior_data[5] ^ prior_data[4] ^ prior_data[3] ^ prior_data[2] ^ prior_data[1] ^ prior_data[0];
+					row_xor[127] <= ^prior_data;
 				endcase
 			else
 			begin
@@ -431,26 +443,33 @@ module read_generate_ECC(
 		end
 	end
 	
-	always @(posedge clk)
-	begin
-		if(otp_finish == 1)
-		begin
+	always @(posedge clk or posedge rst)begin
+		if(rst) begin
+			code_time	<= 'd0;
+		end 
+		else if(otp_finish == 1) begin
 			if(code_time < 3'b111)
 				code_time <= code_time + 1'b1;
-			else
-				code_time <= 3'b000;
 		end
 		else
 			code_time <= 3'b000;
 	end
 
-		
+//	always @(posedge clk or posedge rst)
+//	begin
+//		if(rst)
+//			init_xor_code <= 1'b0;
+//		else
+//			init_xor_code <= ((~code_time[2]) & (code_time[0])) | ((~code_time[2]) & (code_time[1]) & (~code_time[0]));		//在编码计数为0 1 2 3时初始化基础异或值, 这样设计是因为，上层存储ECC校验码的RAM是8bit的位宽，需要三个周期才可以存储完成
+//	end
+
+	// 2021 06 15 	
 	always @(posedge clk or posedge rst)
 	begin
 		if(rst)
 			init_xor_code <= 1'b0;
 		else
-			if(code_time < 2)
+			if(code_time < 3)
 				init_xor_code <= 0;
 			else
 				init_xor_code <= 1;

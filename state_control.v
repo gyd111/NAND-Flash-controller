@@ -20,6 +20,7 @@
 //////////////////////////////////////////////////////////////////////////////////
 module state_control(
 	input rst,ready_busy,clk,clk12M,en_erase_page,en_write_page,en_read, // clk is 24M
+	input  tclk,
 	output reg end_write_page,end_read,end_erase_page,
 	output reg [4:0] state,
 
@@ -42,14 +43,30 @@ module state_control(
 
 	reg [1:0]tADL;										//暂停时间，在写完地址后，写数据开始前需要暂停几个周期，然后才能开始写数据
 	reg [3:0]tECC;										//ECC暂停计时，每128K数据读写需要暂停读写进行一次ECC
-	reg i,j;												//状态16和状态9开始时暂停一个周期，因为时序要求
-	reg [1:0] m,n;										//状态10开始时暂停两个周期
+	reg i,j,delay1;												//状态16和状态9开始时暂停一个周期，因为时序要求
+	reg [2:0] m,n;										//状态10开始时暂停两个周期
 	reg [4:0] nandflash_busy_Noresponse_cnt;     //nandflash的busy信号无响应计数
 	
 	reg re_flag,k;
 	reg cle,ale,we,re;
+
+// debug
+//ila_state_control ila_state_control_inst (
+//	.clk(tclk), // input wire clk
+//	.probe0(state), // input wire [4:0]  probe0  
+//	.probe1(read_data_cnt), // input wire [13:0]  probe1 
+//	.probe2(tECC), // input wire [3:0]  probe2 
+//	.probe3(tRead), // input wire [0:0]  probe3 s
+//	.probe4(m) // input wire [2:0]  probe4
+//);	
 	
-	
+//	ila_state_ctrl your_instance_name (
+//	.clk(tclk), // input wire clk
+//	.probe0(n) ,// input wire [2:0] probe0
+//	.probe1(we1),
+//	.probe2(write_data_cnt)
+//	//.probe3(tWrite)
+//);
 	always @(negedge clk or posedge rst)	//nandflash的busy信号无响应判断
 	begin
 	  if(rst)
@@ -104,7 +121,7 @@ module state_control(
 			end
 	end
 
-	always @(clk or rst)	//对控制信号进行赋值
+	always @(clk or rst or state)	//对控制信号进行赋值
 	begin
 		if(rst)
 		begin
@@ -114,6 +131,7 @@ module state_control(
 			re <= 1;
 			n <= 0;
 			i <= 0;
+			
 		end
 		else
 			case(state)
@@ -193,7 +211,10 @@ module state_control(
 				begin
 					cle <= 0;
 					ale <= 1;
-					we <= clk;
+					if(tADL >= 1)
+					   we  <= 1'b0;
+					else
+					   we  <= clk;
 					re <= 1;
 					n <= 0;
 					i <= 0;
@@ -204,28 +225,23 @@ module state_control(
 					ale <= 0;
 					re <= 1;
 					i <= 0;
-					if(tWrite)
-					begin
-						if(write_data_cnt == 8192 | write_data_cnt == 8193)		//写完8192个原始数据，并且完成ECC计算后，先让we保持为0两个周期，目的是调整时序，因为ECC码从ram输出到输入到flash会有两个周期的时间差
-							we <= 0;
-						else	if(n < 2)
-									n <= n+1;
-								else
-								begin
-									we <= clk;
-									n <= 2;
-								end
+					if(tWrite) begin
+						if(write_data_cnt == 8192 | write_data_cnt == 8193)	begin	//写完8192个原始数据，并且完成ECC计算后，先让we保持为0两个周期，目的是调整时序，因为ECC码从ram输出到输入到flash会有两个周期的时间差
+			                 we <= 0;
+//						     if(n < 4)
+//							     n <= n+1;
+//							 else begin
+//								we <= clk;
+//								n <= 4;
+//							end
+					   	end
+					   	else  
+					       we <= clk;  
 					end
-					else if(n > 0)							//因为是电平触发，两次计数才是一个时钟周期
-							begin
-								n <= n - 1;
-								we <= clk;
-							end
-							else
-							begin
-								we <= 0;
-								n <= 0;
-							end
+					else begin
+						we <= 0;
+						n <= 0;
+					end
 				end
 			10:
 				begin
@@ -236,7 +252,7 @@ module state_control(
 					n <= 0;
 					if(tRead & re_flag)
 						re <= clk;
-					else
+					else 
 						re <= 1;
 				end
 			11:
@@ -346,6 +362,7 @@ module state_control(
 //		read_data_flag <= 0;
 		j <= 0;
 		m <= 0;
+		delay1 <= 0;
 	end
 	else
 		if(ready_busy == 0)
@@ -503,10 +520,15 @@ module state_control(
 				end
 				end
 				else			
-				begin
-					state <= 18;
-					read_data_cnt <= 0;
-				end
+					begin
+						if(delay1 == 0)
+							delay1 	<= 1; // delay 1 cycle to write last ecc data(addr == 704) 
+						else  begin
+							state 	<= 18;
+							read_data_cnt	<= 0;
+							delay1 	<= 0;
+						end 
+					end
 			end
 			11:												//写初始化ff命令
 				state <= 11;

@@ -41,7 +41,7 @@ module read_flash_control(
 	 wire [3:0] read_state;
 	 reg 	[1:0]	read_data_useless;
 	 reg [6:0]read_addr_reg; 			//用于页数判断的地址缓存
-	 reg n;
+	 reg [1:0]	n;
 	 
 	 reg en_read_reg;
 	 wire pos_en_read;
@@ -57,12 +57,33 @@ module read_flash_control(
 	 reg [7:0]read_ram_datain3;			//数据无效时用于在ram的8192和8193地址处写入55
  	 reg [14:0]read_ram_addr3;
  	 reg read_en_ram3,read_we_ram3;
- 
+ 	reg		[16:0]	read_change_addr_buf;
 	 assign read_en_ram = (read_state == 4) ? read_en_ram1 : read_en_ram2 | read_en_ram3;						//因为在状态4切换到状态5的时候
 	 assign read_we_ram = (read_state == 4) ? read_we_ram1 : read_we_ram2 | read_we_ram3;						//由于 read_cnt 的第一位会变为0
 	 assign read_ram_addr = (read_state == 4) ? read_ram_addr1 : read_ram_addr2 | read_ram_addr3;			//所以在切换那个时钟周期会有一次不需要的写入
 	 assign read_ram_datain = (read_state == 4) ? read_ram_datain1 : read_ram_datain2 | read_ram_datain3;	//所以采用了这样的写法，而不是直接三个数值相或
  
+ 
+// ila_ecc_chexk your_instance_name (
+//	.clk(clk), // input wire clk
+
+
+//	.probe0(read_state), // input wire [3:0]  probe0  
+//	.probe1(read_en_ram), // input wire [0:0]  probe1 
+//	.probe2(read_we_ram), // input wire [0:0]  probe2 
+//	.probe3(read_ram_datain), // input wire [7:0]  probe3 
+//	.probe4(read_ram_dataout), // input wire [7:0]  probe4 
+//	.probe5(read_ram_addr[12:0]), // input wire [12:0]  probe5 
+//	.probe6(read_data_change_addr), // input wire [15:0]  probe6
+//	.probe7(read_data_ECCstate)
+//);
+
+always @(posedge clk or posedge rst) begin
+	if(rst) 
+		read_change_addr_buf	<= 'd0;
+	else if(read_data_ECCstate == 2)
+		read_change_addr_buf	<= read_data_change_addr;  // when ecc state is 2, latch the change addr
+end 
 	 always @(posedge clk or posedge rst)			//产生数据无效标志
 	 begin
 		if(rst)
@@ -163,17 +184,17 @@ module read_flash_control(
 		else
 		begin
 			if(read_state == 7)
-				if(n == 0)				// read data from save ram
+				if(n < 2)				// read data from save ram , delay 1 cycle, data read from ram need 1 cycle  
 				begin
 					read_en_ram2 <= 1;
 					read_we_ram2 <= 0;
-					read_ram_addr2[12:0] <= read_data_change_addr[15:3];
+					read_ram_addr2[12:0] <= read_change_addr_buf[15:3] + 1;
 					read_ram_addr2[14:13] <= 0;
-					n <= 1;
+					n <= n + 1;
 				end
 				else begin
 					read_we_ram2 		<= 1;
-					case(read_data_change_addr[2:0])
+					case(read_change_addr_buf[2:0])
 					3'b000:
 					begin
 						read_ram_datain2[0] <= ~read_ram_dataout[0];

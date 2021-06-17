@@ -51,8 +51,13 @@ module write_flash(
 	assign cmd_finish  = 8'h10;									//结束命令10
 	assign addr_column = 16'h0000;								//列地址固定为0，每次从每一页的开头开始写
 	
+	/*
+		for test , when write data cnt is 1, reverse the write data's bit 0
+	*/
+	wire	[7:0]	test_ecc_data;
+	assign test_ecc_data = (write_data_cnt == 'd2) ? {write_data[7:1], ~write_data[0]} : write_data;
 	// state == 11 是上电后的第一个复位命令
-	assign write_flash_datain = (state == 11) ? 8'hff : (en_write_page ? (cmd_data | addr_data | write_data | write_ECC_data) : 0);
+	assign write_flash_datain = (state == 11) ? 8'hff : (en_write_page ? (cmd_data | addr_data | test_ecc_data | write_ECC_data) : 0);  // test ecc data is write data
 
 	always @(posedge clk or posedge rst)
 	begin

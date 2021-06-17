@@ -164,9 +164,11 @@ ila_ctrl_signal ila_ctrl_signal_inst (
 	.probe6(state), // input wire [4:0]  probe6
 	.probe7(read_data_cnt[6:0]),
 	.probe8(read_data_ECCstate),
-	.probe9(en_w_r_e[2]),
-	.probe10(en_w_r_e[1]),
-	.probe11(en_w_r_e[0])
+	.probe9(flash_dataram_datain),
+	.probe10(flash_dataram_dataout),
+	.probe11(addr_flash_dataram),
+	.probe12(we_flash_dataram),
+	.probe13(en_flash_dataram)
 );
 	 
 //****************************************************//
@@ -242,7 +244,7 @@ ila_ctrl_signal ila_ctrl_signal_inst (
 
 	 assign enb_infoRAM 		   = flash_en_ram;                 //端口b片选使能
 	 assign addrb_infoRAM 		   = flash_ram_addr[13:0];       	//端口b地址
-	 assign flash_ram_dataout      =  dataout_infoRAM;  
+	 assign flash_ram_dataout      = (state == 18  ) ? flash_dataram_dataout : dataout_infoRAM;  
 	 //flash_en_ram ? dataout_infoRAM : flash_dataram_dataout			//写入Flash的数据
 	 assign en_flash_dataram 	   = read_en_ram;  			// flash 数据读出来之后的写ram使能          
 	 assign we_flash_dataram 	   = flash_we_ram;
@@ -255,6 +257,7 @@ ila_ctrl_signal ila_ctrl_signal_inst (
 //****************************************************//
 //                        RAM	  		       				//
 //****************************************************//
+// ram1 save flash data;
 	RAM1 RAM1 (
 		.clka(clk), // input clka
 		.ena(en_flash_dataram), // input ena

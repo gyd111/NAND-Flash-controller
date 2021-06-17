@@ -245,7 +245,7 @@ module NANDflash_control(
     .end_init_flash_addr(end_init_flash_addr), 
     .write_en_ram(write_en_ram), 
     .write_ram_addr(write_ram_addr), 
-    .write_ram_dataout(write_ram_dataout),
+    .write_ram_dataout(write_ram_dataout),						// data write to  flash
 	 .en_writeAddr_Transfer(en_writeAddr_Transfer),
 	 .end_writeAddr_Transfer(end_writeAddr_Transfer),
 	 .en_log_write(en_log_write)
